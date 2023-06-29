@@ -2,7 +2,6 @@ import { IMultitrackRecording, IRecordingDownloadableResource } from "./models/c
 import { getTextContent, getAttributeValue, parseNumberFromString, generateId, generateHashId } from "./utils/utils.js";
 import { CambridgeMTArtist } from "./Artist.js";
 import { IMultitrackRecordingEntity } from "./models/entity-models.js";
-import { QueryableObject } from "./database/QueryableObject.js";
 import { DatabaseClient } from "./database/dbClient.js";
 import { IDatabaseWriteable } from "./database/IDatabaseObject.js";
 import Database from "better-sqlite3";

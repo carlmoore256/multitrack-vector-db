@@ -2,7 +2,6 @@ import pg from 'pg';
 const { Client } = pg;
 import { IGenre, IArtist, IMultitrackRecording, IRecordingDownloadableResource } from '../models/cambridge-models.js';
 import { readFileSync } from 'fs';
-import { IQueryable } from './IQueryable.js';
 import { parseColumns, ITableColumn } from './sql-helpers.js';
 import { selectPrompt, yesNoPrompt, inputPrompt } from '../cli/cli-promts.js';
 import { DatabaseTable } from './DatabaseTable.js';
@@ -11,59 +10,6 @@ import dotenv from 'dotenv';
 import { table } from 'console';
 dotenv.config();
 
-const ALL_TABLES = [
-    'genre',
-    'artist',
-    'artist_resource',
-    'multitrack_recording',
-    'multitrack_recording_download',
-    'artist_genre',
-    'audio_file',
-    'recording_genre',
-    'recording_file',
-    'forum_user',
-    'forum_thread',
-    'forum_post',
-    'audio_window',
-];
-
-
-// export async function parseTables(sql : string, client : DatabaseClient) : Promise<{ [key : string] : ITable }> {
-//     const tableStrings = sql.split(';');
-//     const tables : Promise<{ [key : string] : ITable }> = await tableStrings.reduce((acc, cur) => {
-//         const tableName = cur.match(/CREATE TABLE IF NOT EXISTS (\w+)/);
-//         if (tableName) {
-//             const name = tableName[1];
-//             const columns = parseColumns(cur);
-//             const primaryKey = await client.getPrimaryKeyOfTable(name) || columns[0];
-//             const table = new DatabaseTable(client.db, name);
-//             acc[name] = {
-//                 name,
-//                 table,
-//                 createQuery : cur + ';',
-//                 columns,
-//                 primaryKey,
-//                 insert : async (data : any) => table.insert(data),
-//                 insertMany : async (data : any[]) => table.insertMany(data),
-//                 upsert : async (data : any) => table.upsert(data, primaryKey),
-//                 upsertMany : async (data : any[]) => table.upsertMany(data, primaryKey),
-//                 query : async (query : Partial<any>) => table.query(query),
-//                 selectOne : async (query : Partial<any>) => table.selectOne(query),
-//                 getAll : async () => table.getAll(),
-//                 getById : async (id : string) => table.getById(id),
-//                 delete : async (query : Partial<any>) => table.delete(query),
-//                 deleteById : async (id : string) => table.deleteById(id),
-//             };
-//         }
-//         // Debug.logObject(acc, "YOOOOO ACC");
-//         return acc;
-//     }, {} as any);
-
-//     for(const t of Object.values(tables)) {
-//         Debug.log(`Initializing table ${t.name}`, LogColor.Green, 'YOOO', true);
-//     }
-//     return Promise.resolve(tables);
-// }
 
 export async function parseTables(sql : string, client : DatabaseClient) : Promise<{ [key : string] : ITable }> {
     const tableStrings = sql.split(';');
@@ -102,8 +48,6 @@ export async function parseTables(sql : string, client : DatabaseClient) : Promi
 }
 
 
-
-
 interface ITable {
     name : string;
     table : DatabaseTable;
@@ -128,6 +72,7 @@ interface ITable {
 export class DatabaseClient {
     public db: pg.Client;
     public tables : { [key : string] : ITable } = {};
+    public isConnected = false;
 
     constructor() {
         this.db = new Client({
@@ -141,6 +86,7 @@ export class DatabaseClient {
         await this.db.connect();
         await this.createTables();
         Debug.log("Initialized tables", LogColor.Green);
+        this.isConnected = true;
     }
     
     public async createTables() {
@@ -393,7 +339,6 @@ export class DatabaseClient {
     }
 
     public async insert(tableName: string, item: any, upsert : boolean = true) : Promise<boolean> {
-        // const table = new DatabaseTable(this.db, tableName);
         const table = this.tables[tableName];
         var res = false;
         if (upsert) {
@@ -402,6 +347,11 @@ export class DatabaseClient {
             res = await table.insert(item);
         }
         return res;
+    }
+
+    public async upsert(tableName: string, item: any) : Promise<boolean> {
+        const table = this.tables[tableName];
+        return await table.upsert(item);
     }
 
     public async insertMany(tableName: string, items: any[]) : Promise<boolean> {
@@ -424,12 +374,6 @@ export class DatabaseClient {
         // const table = new DatabaseTable(this.db, tableName);
         const table = this.tables[tableName];
         return await table.getById(id);
-    }
-    
-    public async createWithQueryable<T>(item : IQueryable<T>) {
-        // const table = new DatabaseTable(this.db, item.tableName);
-        const table = this.tables[item.tableName];
-        const res = await table.insert(item.getQueryable());
     }
 
     public async create(tableName : string, item : any) {

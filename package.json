@@ -14,12 +14,14 @@
   "license": "ISC",
   "dependencies": {
     "@inquirer/prompts": "^2.2.0",
+    "@types/axios": "^0.14.0",
     "@types/better-sqlite3": "^7.6.4",
     "@types/inquirer": "^9.0.3",
     "@types/jsdom": "^21.1.1",
     "@types/pg": "^8.10.2",
     "@types/progress": "^2.0.5",
     "@types/uuid": "^9.0.2",
+    "axios": "^1.4.0",
     "better-sqlite3": "^8.4.0",
     "chalk": "^5.2.0",
     "chromadb": "^1.5.2",
@@ -37,7 +39,8 @@
     "sqlite-vss": "^0.1.1-alpha.20",
     "tsc-watch": "^6.0.4",
     "typeorm": "^0.3.17",
-    "uuid": "^9.0.0"
+    "uuid": "^9.0.0",
+    "zlib": "^1.0.5"
   },
   "devDependencies": {
     "@types/node": "^20.3.2"
