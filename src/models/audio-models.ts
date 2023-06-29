@@ -1,19 +1,6 @@
 
-export interface IGenre {
-    id : string;
-    name : string;
-    subGenres? : string[];
-}
 
-
-export interface IArtist {
-    id : string;
-    name : string;
-    genres? : IGenre[];
-    description? : string;
-}
-
-export interface IMultitrackFile {
+export interface IAudioFile {
     id : string;
     uri : string;
     name : string;
@@ -21,38 +8,6 @@ export interface IMultitrackFile {
     bytes? : number;
     metadata? : any;
 }
-
-export interface IMultitrackRecording {
-    id : string;
-    name : string;
-    numTracks : number;
-    artist : IArtist | string;
-    genres : IGenre[] | string[];
-    tags? : string[];
-    files? : IMultitrackFile[];
-    metadata? : any;
-}
-
-export interface IDownloadableResource {
-    url : string;
-    filename : string;
-    bytes : number;
-}
-
-export interface IForumThread {
-    id : number;
-    url : string;
-    title : string;
-    author : string;
-    replies? : number;
-    views? : number;
-    rating? : number | null;
-    lastPostDate? : string;
-    hasAttachment? : boolean;
-}
-
-
-
 
 export type AudioClassifierModel = 'BEATs' | 'YAMNet';
 
@@ -91,7 +46,7 @@ export interface IAudioEmbedding {
 export interface IAudioLabel {
     windowId : string; // fk IAudioWindow.id
     label : string;
-    model : AudioClassifierModel;
+    model : AudioClassifierModel | string;
     vector? : number[]; // vector index (of label embeddings)
     probability? : number;
     class? : string;

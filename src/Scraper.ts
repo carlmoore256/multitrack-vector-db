@@ -1,10 +1,11 @@
 import {JSDOM} from "jsdom";
 import { readFileSync, existsSync, writeFileSync, mkdirSync } from "fs";
-import { checkLoadCache } from "./utils.js";
+import { checkLoadCache } from "./utils/utils.js";
 import { CambridgeMTRecording } from "./Recording.js";
 import { CambridgeMTGenre, consolidateGenres } from "./Genre.js";
 import { CambridgeMTArtist, consolidateArtists } from "./Artist.js";
 import { CachedWebPage } from "./CachedWebPage.js";
+import Debug from "./utils/Debug.js";
 
 const BASE_URL = "https://www.cambridge-mt.com/ms/mtk/";
 const CACHE_ID = "cambridge-mt";
@@ -60,7 +61,7 @@ export class CambridgeMTScraper extends CachedWebPage {
             throw new Error("Page not loaded");
         }
         const recordingElements = this.page.querySelectorAll('.m-mtk-track');
-        console.log(`Parsing ${recordingElements.length} recordings`);
+        Debug.log(`Parsing ${recordingElements.length} recordings`);
         const recordings = Array.from(recordingElements).map(e => {
             return CambridgeMTRecording.fromElement(e as HTMLElement)
         });

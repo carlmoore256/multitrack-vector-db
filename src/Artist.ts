@@ -1,16 +1,23 @@
-import { IArtist, IGenre } from "./types.js";
-import { getTextContent, generateId } from "./utils.js";
+import { IArtist, IGenre, IArtistResource } from "./models/cambridge-models.js";
+import { getTextContent, generateId, generateHashId } from "./utils/utils.js";
 import { CambridgeMTGenre } from "./Genre.js";
+import { IDatabaseWriteable } from "./database/IDatabaseObject.js";
+import { DatabaseClient } from "./database/dbClient.js";
+import { CambridgeMTRecording } from "./Recording.js";
+import pg from "pg";
 
-export class CambridgeMTArtist implements IArtist {
+export class CambridgeMTArtist implements IArtist, IDatabaseWriteable {
+
+    public id : string;
 
     constructor(
-        public id : string,
         public name : string,
         public genres : CambridgeMTGenre[],
         public description? : string,
         public links? : string[],
-    ) {}
+    ) {
+        this.id = generateHashId(name, 10);
+    }
 
 
     /**
@@ -31,29 +38,88 @@ export class CambridgeMTArtist implements IArtist {
         var name = getTextContent(artistElement, 'h4.m-container__title-bar-item span') as string;
         name = name.replace(/'/g, "").trim();
 
-        const id = generateId();
+        // const id = generateId();
         
         const description = getTextContent(artistElement, '.m-container__title-bar-item strong');
       
         var links = Array.from(artistElement.querySelectorAll('.m-container__header a')).map(a => a.getAttribute('href')) as string[];
         links = Array.from(new Set(links));
  
-        if (!id || !name || !genres || !description || !links) {
+        if (!name || !genres || !description || !links) {
             throw new Error("Could not parse recording");
         }
 
-        return new CambridgeMTArtist(id, name, genres || [], description, links);
+        return new CambridgeMTArtist(name, genres || [], description, links);
     }
+
+
 
     toJSON() {
         return {
             id: this.id,
             name: this.name,
-            genreIds: this.genres.map(g => g.id),
+            genres: this.genres.map(g => g.id),
             description: this.description,
             links: this.links,
         }
     }
+
+    public static fromJSON(json : any) {
+        return new CambridgeMTArtist(json.name, [], json.description, json.links);
+    }
+
+    async insertIntoDatabase(db : DatabaseClient) {
+
+        const artistSuccess = await db.insert('artist', {
+            id: this.id,
+            name: this.name,
+            description: this.description
+        });
+        if (!artistSuccess) {
+            return false;
+        }
+
+        for (const link of this.links || []) {
+            const resourceSuccess = await db.insert('artist_resource', {
+                id: generateId(),
+                artist_id: this.id,
+                uri: link
+            });
+            if (!resourceSuccess) {
+                return false;
+            }
+        }
+
+        for (const genre of this.genres || []) {
+            const genreSuccess = await db.insert('artist_genre', {
+                artist_id: this.id,
+                genre_id: genre.id
+            }, false);
+            if (!genreSuccess) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    static async fromDatabase(db : DatabaseClient, id : string) {
+        const artist = await db.getById('artist', id);
+        if (!artist) {
+            return null;
+        }
+
+        const resources = await db.selectOne('artist_resource', { artistId: id }) as IArtistResource[];
+        const genres = await db.selectOne('artist_genre', { artistId: id }) as IGenre[];
+
+        return new CambridgeMTArtist(
+            artist.name,
+            genres.map(g => new CambridgeMTGenre(g.name, g.sub_genres || [])),
+            artist.description,
+            resources.map(r => r.uri)
+        );
+    }
+
 }
 
 
@@ -83,3 +149,11 @@ export function consolidateArtists(artists: CambridgeMTArtist[]): CambridgeMTArt
 
     return Object.values(consolidated);
 }
+
+
+// export function consolidateArtistRecordings(recordings : CambridgeMTRecording) {
+//     // const consolidated : { [name : string] : CambridgeMTRecording } = {};
+
+//     recordings.forEach(recording => {
+//         if ()
+// }

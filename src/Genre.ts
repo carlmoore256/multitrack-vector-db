@@ -1,14 +1,20 @@
-import { IGenre } from "./types.js";
+import { IGenre } from "./models/cambridge-models.js";
+import { DatabaseClient } from "./database/dbClient.js";
+import { IDatabaseWriteable } from "./database/IDatabaseObject.js";
+import { Debug, LogColor } from "./utils/Debug.js";
+export class CambridgeMTGenre implements IGenre, IDatabaseWriteable {
 
+    public id : string;
+    public sub_genres: string[];
 
-export class CambridgeMTGenre implements IGenre {
-
-    constructor(
-        public id: string, 
+    constructor( 
         public name: string, 
-        public subGenres: string[]
-    ) {}
-
+        subGenres: string[]
+    ) {
+        this.id = name.toLowerCase();
+        this.sub_genres = Array.from(new Set(subGenres));
+        this.sub_genres = this.sub_genres.filter(s => s !== name);
+    }
 
     /**
      * Creates a genre from a page HTMLElement
@@ -16,13 +22,26 @@ export class CambridgeMTGenre implements IGenre {
      */
     static fromElement(element: HTMLElement) : CambridgeMTGenre {
         const name = element.querySelector("h3")?.id as string;
-        const id = name.toLowerCase();
         const subGenres = element.querySelector("h3 span")?.textContent?.split(" / ");
         
-        if (!id || !name || !subGenres) {
+        if (!name || !subGenres) {
             throw new Error("Could not parse genre");
         }
-        return new CambridgeMTGenre(id, name, subGenres);
+        return new CambridgeMTGenre(name, subGenres);
+    }
+
+
+    async insertIntoDatabase(db : DatabaseClient) : Promise<boolean> {
+        try {
+            return await db.insert('genre', {
+                id: this.id,
+                name: this.name,
+                sub_genres: this.sub_genres,
+            });
+        } catch (e) {
+            Debug.log(e as string, LogColor.Red, "[ERROR]", true);
+            return false;
+        }
     }
 }
 
@@ -33,7 +52,7 @@ export function consolidateGenres(genres: CambridgeMTGenre[]): CambridgeMTGenre[
         const existing = genreMap.get(genre.name);
         if (existing) {
             // Merge subgenres if genre already exists
-            existing.subGenres = Array.from(new Set([...existing.subGenres, ...genre.subGenres]));
+            existing.sub_genres = Array.from(new Set([...existing.sub_genres, ...genre.sub_genres]));
         } else {
             genreMap.set(genre.name, genre);
         }

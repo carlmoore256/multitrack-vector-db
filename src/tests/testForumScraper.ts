@@ -1,4 +1,4 @@
-import { saveJSON, loadJSON } from "../utils.js";
+import { saveJSON, loadJSON } from "../utils/utils.js";
 import { CambridgeMTForumScraper } from "../Forum.js";
 import { CambridgeMTRecording } from "../Recording.js";
 import { crawlForumPostingsForURL } from "../Forum.js";
@@ -18,8 +18,8 @@ async function test() {
     // const forumScraper = new CambridgeMTForumScraper(url);
     // await forumScraper.load();
     
-    const allForumThreads = await crawlForumPostingsForURL(url);
-    saveJSON(allForumThreads, `./data/forum-threads-${getForumId(url)}.json`);
+    // const allForumThreads = await crawlForumPostingsForURL(url);
+    // saveJSON(allForumThreads, `./data/forum-threads-${getForumId(url)}.json`);
 
 }
 

@@ -1,30 +1,32 @@
 import { readFileSync, existsSync, writeFileSync, mkdirSync } from "fs";
 import { v4 as uuidv4 } from 'uuid';
+import { createHash } from "crypto";
 import path from "path";
-
+import { Debug } from "./Debug.js";
 
 const CACHE_DIR = "./data/cache/";
 
 export async function checkLoadCache<T>(
         url : string, cacheId : string, 
         extension : string="html", 
-        encoding : BufferEncoding="utf8") : Promise<T> {
+        encoding : BufferEncoding="utf8",
+        verbose : boolean = false) : Promise<T> {
     
     var data = null;
     const filename = path.join(CACHE_DIR, cacheId + `.${extension}`);
 
     if (existsSync(filename)) {
-        console.log(`Loading ${filename} from cache...`);
+        Debug.log(`Loading ${filename} from cache...`);
         data = readFileSync(filename, encoding);
     } else {
-        console.log("Fetching from web...");
+        Debug.log("Fetching from web...");
         const res = await fetch(url);
         data = await res.text();
         if (!existsSync(CACHE_DIR)) {
-            console.log("Creating cache directory...");
+            Debug.log("Creating cache directory...");
             mkdirSync(CACHE_DIR);
         }
-        console.log("Writing to cache...");
+        Debug.log("Writing to cache...");
         writeFileSync(filename, data);
     }
     if (data == null) {
@@ -43,12 +45,12 @@ export function queryElement<T extends HTMLElement>(element: HTMLElement, query:
 
 
 // Helper function to extract text content from an element
-export function getTextContent(element: HTMLElement, selector: string): string | null {
+export function getTextContent(element: HTMLElement | Element, selector: string): string | null {
     const child = element.querySelector(selector);
     return child?.textContent?.trim() || null;
   }
   
-export function getAttributeValue(element: HTMLElement, selector: string, attribute: string): string | null {
+export function getAttributeValue(element: HTMLElement | Element, selector: string, attribute: string): string | null {
     const child = element.querySelector(selector);
     return child?.getAttribute(attribute) || null;
 }
@@ -75,6 +77,11 @@ export function getIdFromName(name : string) : string {
 
 export function generateId() {
     return uuidv4();
+}
+
+export function generateHashId(input : string, length : number, algorithm = 'sha256') {
+    const hash = createHash(algorithm).update(input).digest('hex');
+    return hash.substring(0, length);
 }
 
 export function convertUrlToFileName(url : string) {

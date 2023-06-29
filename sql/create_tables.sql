@@ -1,95 +1,140 @@
-
+-- IDatabaseWriteable
 CREATE TABLE IF NOT EXISTS genre (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
-    subGenres TEXT
+    sub_genres TEXT
 );
 
+-- IDatabaseWriteable
 CREATE TABLE IF NOT EXISTS artist (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     description TEXT
 );
 
+
+CREATE TABLE IF NOT EXISTS artist_resource (
+    id TEXT PRIMARY KEY,
+    artist_id TEXT NOT NULL,
+    uri TEXT NOT NULL,
+    FOREIGN KEY(artist_id) REFERENCES artist(id)
+);
+
+-- IDatabaseWriteable
 -- represents an entire recording session with many multitrack_files
-CREATE TABLE IF NOT EXISTS mutltitrack_recording (
+CREATE TABLE IF NOT EXISTS multitrack_recording (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
-    numTracks INTEGER NOT NULL,
-    artistId TEXT NOT NULL,
+    num_tracks INTEGER NOT NULL,
+    artist_id TEXT NOT NULL,
     metadata TEXT,
-    FOREIGN KEY(artistId) REFERENCES artist(id)
+    forum_url TEXT,
+    FOREIGN KEY(artist_id) REFERENCES artist(id)
+);
+
+CREATE TABLE IF NOT EXISTS multitrack_recording_download (
+    id TEXT PRIMARY KEY,
+    type TEXT NOT NULL,
+    filename TEXT NOT NULL,
+    url TEXT NOT NULL,
+    bytes BIGINT,
+    recording_id TEXT NOT NULL,
+    FOREIGN KEY(recording_id) REFERENCES multitrack_recording
 );
 
 -- junction table to form a many-to-many relationship between genre and artist
 -- because artist may have many genres, and genres aren't associated directly
 -- with artists
 CREATE TABLE IF NOT EXISTS artist_genre (
-    artistId TEXT NOT NULL,
-    genreId TEXT NOT NULL,
-    FOREIGN KEY(artistId) REFERENCES artist(id),
-    FOREIGN KEY(genreId) REFERENCES genre(id)
+    artist_id TEXT NOT NULL,
+    genre_id TEXT NOT NULL,
+    FOREIGN KEY(artist_id) REFERENCES artist(id),
+    FOREIGN KEY(genre_id) REFERENCES genre(id)
 );
 
--- represents a single file associated with a mutltitrack_recording
+-- represents a single file associated with a multitrack_recording
 CREATE TABLE IF NOT EXISTS audio_file (
     id TEXT PRIMARY KEY,
     uri TEXT NOT NULL,
     name TEXT NOT NULL,
     tags TEXT,
-    bytes INTEGER,
+    bytes BIGINT,
     metadata TEXT,
-    recordingId TEXT NOT NULL,
-    FOREIGN KEY(recordingId) REFERENCES mutltitrack_recording(id)
+    recording_id TEXT NOT NULL,
+    FOREIGN KEY(recording_id) REFERENCES multitrack_recording
+(id)
 );
 
 
 -- a junction table for a genre assigned to a recording, because it's a many-to-many
 -- relationship, since each recording can have multiple genres
 CREATE TABLE IF NOT EXISTS recording_genre (
-    recordingId TEXT NOT NULL,
-    genreId TEXT NOT NULL,
-    PRIMARY KEY(recordingId, genreId),
-    FOREIGN KEY(recordingId) REFERENCES mutltitrack_recording(id),
-    FOREIGN KEY(genreId) REFERENCES genre(id)
+    recording_id TEXT NOT NULL,
+    genre_id TEXT NOT NULL,
+    PRIMARY KEY(recording_id, genre_id),
+    FOREIGN KEY(recording_id) REFERENCES multitrack_recording
+(id),
+    FOREIGN KEY(genre_id) REFERENCES genre(id)
 );
 
 CREATE TABLE IF NOT EXISTS recording_file (
-    recordingId TEXT NOT NULL,
-    fileId TEXT NOT NULL,
-    FOREIGN KEY(recordingId) REFERENCES mutltitrack_recording(id),
-    FOREIGN KEY(fileId) REFERENCES audio_file(id)
+    recording_id TEXT NOT NULL,
+    file_id TEXT NOT NULL,
+    FOREIGN KEY(recording_id) REFERENCES multitrack_recording
+(id),
+    FOREIGN KEY(file_id) REFERENCES audio_file(id)
+);
+
+CREATE TABLE IF NOT EXISTS forum_user (
+    id TEXT PRIMARY KEY,
+    username TEXT,
+    joined_date TEXT,
+    posts_count INTEGER,
+    threads_count INTEGER,
+    profile_url TEXT
 );
 
 CREATE TABLE IF NOT EXISTS forum_thread (
-    id INTEGER PRIMARY KEY,
+    id TEXT PRIMARY KEY,
     url TEXT,
     title TEXT,
     author TEXT,
+    author_id TEXT,
     replies INTEGER,
     views INTEGER,
     rating INTEGER,
-    lastPostDate DATE,
-    recordingId TEXT,
-    hasAttachment BOOLEAN,
-    FOREIGN KEY(recordingId) REFERENCES mutltitrack_recording(id)
+    last_post_date TEXT,
+    recording_id TEXT,
+    has_attachment BOOLEAN,
+    FOREIGN KEY(recording_id) REFERENCES multitrack_recording(id)
 );
 
+CREATE TABLE IF NOT EXISTS forum_post (
+    id INTEGER PRIMARY KEY,
+    thread_id TEXT,
+    author_id TEXT,
+    username TEXT, -- just have both for ease of use when querying chats
+    date TEXT,
+    content TEXT,
+    attachment_id TEXT,
+    FOREIGN KEY(thread_id) REFERENCES forum_thread(id),
+    FOREIGN KEY(author_id) REFERENCES forum_user(id)
+);
 
 CREATE TABLE IF NOT EXISTS audio_window (
     id TEXT PRIMARY KEY,
-    fileId TEXT NOT NULL,
-    sampleStart INTEGER NOT NULL,
-    sampleEnd INTEGER NOT NULL,
-    sampleLength INTEGER NOT NULL,
-    timeStart REAL NOT NULL,
-    timeEnd REAL NOT NULL,
-    timeLength REAL NOT NULL,
-    normalizedTimeStart REAL NOT NULL,
-    normalizedTimeEnd REAL NOT NULL,
-    normalizedTimeLength REAL NOT NULL,
-    clipIndex INTEGER,
-    FOREIGN KEY(fileId) REFERENCES audio_file
+    file_id TEXT NOT NULL,
+    sample_start INTEGER NOT NULL,
+    sample_end INTEGER NOT NULL,
+    sample_length INTEGER NOT NULL,
+    time_start REAL NOT NULL,
+    time_end REAL NOT NULL,
+    time_length REAL NOT NULL,
+    normalized_time_start REAL NOT NULL,
+    normalized_time_end REAL NOT NULL,
+    normalized_time_length REAL NOT NULL,
+    clip_index INTEGER,
+    FOREIGN KEY(file_id) REFERENCES audio_file
 (id)
 );
 

@@ -1,6 +1,13 @@
-import { IMultitrackRecording, IDownloadableResource } from "./types.js";
-import { getTextContent, getAttributeValue, parseNumberFromString, generateId } from "./utils.js";
+import { IMultitrackRecording, IRecordingDownloadableResource } from "./models/cambridge-models.js";
+import { getTextContent, getAttributeValue, parseNumberFromString, generateId, generateHashId } from "./utils/utils.js";
 import { CambridgeMTArtist } from "./Artist.js";
+import { IMultitrackRecordingEntity } from "./models/entity-models.js";
+import { QueryableObject } from "./database/QueryableObject.js";
+import { DatabaseClient } from "./database/dbClient.js";
+import { IDatabaseWriteable } from "./database/IDatabaseObject.js";
+import Database from "better-sqlite3";
+
+
 
 enum CambridgeMTMixType {
     FullPreview = "Full Preview",
@@ -9,25 +16,25 @@ enum CambridgeMTMixType {
 }
 
 type CambridgeMTMix = {
-    fullPreview? : IDownloadableResource;
-    excerptPreview? : IDownloadableResource;
+    fullPreview? : IRecordingDownloadableResource;
+    excerptPreview? : IRecordingDownloadableResource;
 }
 
 
-export class CambridgeMTRecording implements IMultitrackRecording {
+export class CambridgeMTRecording implements IMultitrackRecording, IDatabaseWriteable {
 
     constructor(
         public id : string,
         public name : string,
-        public numTracks : number,
+        public num_tracks : number,
         public artist : any,
         public genres : any[],
         public tags? : string[],
         public files? : any[],
         public metadata? : any,
-        private download? : IDownloadableResource,
-        private forumUrl? : string,
-        private previewUrl? : string,
+        public forumUrl? : string,
+        public multitrackDownload? : IRecordingDownloadableResource,
+        public previewDownload? : IRecordingDownloadableResource,
     ) {}
 
 
@@ -36,24 +43,17 @@ export class CambridgeMTRecording implements IMultitrackRecording {
      * @param {HTMLElement} element the page element that contains the recording
      */
     static fromElement(element: HTMLElement) : CambridgeMTRecording {
-        
-        // const name = element.querySelector("span")
         // Assuming 'self' is referencing the current object or context
         var name = getTextContent(element, 'span.m-mtk-track__name') as string;
-
         // remove any ' or \n characters
         name = name.replace(/'/g, "").trim();
         name = name.replace(/\n/g, " ");
-
-        // name = name.replace(/'/g, "").trim();
         const id = generateId();
         
         const artistElement = element.closest('.m-container--artist');
-        // const artist = artistElement?.querySelector('.m-container__title-bar-item')?.textContent?.trim();
 
         const artist = CambridgeMTArtist.fromElement(artistElement as HTMLElement);
         const genres = [...artist.genres];
-        // const genres = ["baz"];
         
         const numTracksString = getTextContent(element, 'span.m-mtk-download__count');
         const numTracks = parseInt(numTracksString?.split(" Tracks:")[0] as string);
@@ -66,13 +66,12 @@ export class CambridgeMTRecording implements IMultitrackRecording {
         const previewUrl = getAttributeValue(element, 'li.m-mtk-download.m-mtk-download--text-center a', 'href');
         
         // const multitrackUrl = getAttributeValue(element, 'li.m-mtk-download a', 'href');
-        const downloadUrl = getAttributeValue(element, 'span.m-mtk-download__links a', 'href');
-        const downloadSizeString = getTextContent(element, 'span.m-mtk-download__links');
-        var downloadSize = parseNumberFromString(downloadSizeString?.split(" MB")[0] as string);
+        const fullDownloadUrl = getAttributeValue(element, 'span.m-mtk-download__links a', 'href');
+        const fullDownloadSizeString = getTextContent(element, 'span.m-mtk-download__links');
+        var fullDownloadSize = parseNumberFromString(fullDownloadSizeString?.split(" MB")[0] as string);
         // conver download size from MB to bytes
-        downloadSize = downloadSize * 1024 * 1024;
+        fullDownloadSize = fullDownloadSize * 1024 * 1024;
 
-        const downloadFilename = downloadUrl?.split("/").pop();        
 
         if (
             !id ||
@@ -84,17 +83,24 @@ export class CambridgeMTRecording implements IMultitrackRecording {
             !files ||
             !metadata ||
             !forumUrl ||
-            !downloadUrl ||
+            !fullDownloadUrl ||
             !previewUrl
           ) {
             throw new Error("Could not parse recording");
           }
 
-        const downloadableResource : IDownloadableResource = {
-            url : downloadUrl as string,
-            bytes : downloadSize as number,
-            filename : downloadFilename as string
+        const multitrackDownload : IRecordingDownloadableResource = {
+            id : generateHashId(fullDownloadUrl as string, 10),
+            url : fullDownloadUrl as string,
+            bytes : fullDownloadSize as number,
+            filename : fullDownloadUrl?.split("/").pop() as string
         };
+
+        const previewDownload : IRecordingDownloadableResource = {
+            id : generateHashId(previewUrl as string, 10),
+            url : previewUrl as string,
+            filename : previewUrl?.split("/").pop() as string
+        }
         
         return new CambridgeMTRecording(
             id,
@@ -105,9 +111,9 @@ export class CambridgeMTRecording implements IMultitrackRecording {
             tags,
             files,
             metadata,
-            downloadableResource,
             forumUrl,
-            previewUrl
+            multitrackDownload,
+            previewDownload
         );
     }
 
@@ -115,15 +121,67 @@ export class CambridgeMTRecording implements IMultitrackRecording {
         return {
             id: this.id,
             name: this.name,
-            numTracks: this.numTracks,
-            artistId: this.artist.id, // Return only the artist's ID
-            genreIds: this.genres.map(genre => genre.id), // Return an array of genre IDs
+            num_tracks: this.num_tracks,
+            artist_id: this.artist.id, // Return only the artist's ID
+            genre_ids: this.genres.map(genre => genre.id), // Return an array of genre IDs
             tags: this.tags,
             files: this.files,
             metadata: this.metadata,
-            download: this.download,
-            forumUrl: this.forumUrl,
-            previewUrl: this.previewUrl
+            forum_url: this.forumUrl,
+            multitrack_download: this.multitrackDownload,
+            preview_download: this.previewDownload
         };
+    }
+
+    async insertIntoDatabase(db : DatabaseClient) : Promise<any> {
+        // await db.query(`INSERT INTO multitrack_recording (id, name, numTracks, artistId, metadata) VALUES (?, ?, ?, ?, ?)`, 
+        //     [this.id, this.name, this.numTracks, this.artist.id, JSON.stringify(this.metadata)]);
+         
+        const mtInsertSuccess = await db.insert("multitrack_recording", {
+            id: this.id,
+            name: this.name,
+            num_tracks: this.num_tracks,
+            artist_id: this.artist.id,
+            metadata: JSON.stringify(this.metadata ? this.metadata : {}),
+            forum_url: this.forumUrl
+        });
+        if(!mtInsertSuccess) {
+            return false;
+        }
+
+        for(const genre of this.genres) {
+            
+            const genreInsertSuccess = await db.insert("recording_genre", {
+                recording_id: this.id,
+                genre_id: genre.id
+            }, false);
+            if(!genreInsertSuccess) {
+                return false;
+            }
+        }
+
+        const multitrackDlInsertSuccess = await db.insert("multitrack_recording_download", {
+            id : this.multitrackDownload?.id,
+            type : "multitrack",
+            filename : this.multitrackDownload?.filename,
+            url : this.multitrackDownload?.url,
+            bytes : this.multitrackDownload?.bytes,
+            recording_id : this.id
+        })
+        if(!multitrackDlInsertSuccess) {
+            return false;
+        }
+
+        const previewDlInsertSuccess = await db.insert("multitrack_recording_download", {
+            id : this.previewDownload?.id,
+            type : "preview",
+            filename : this.previewDownload?.filename,
+            url : this.previewDownload?.url,
+            recording_id : this.id
+        });
+        if(!previewDlInsertSuccess) {
+            return false;
+        }
+        return true;
     }
 }
