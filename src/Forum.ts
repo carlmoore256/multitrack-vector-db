@@ -1,4 +1,4 @@
-import { getCambridgeForumListingURL, getForumId, parseThread } from "./forumParsers.js";
+import { getCambridgeForumListingURL, getForumId, parseThread } from "./forum-parsers.js";
 import { CachedWebPage } from "./downloading/CachedWebPage.js";
 import { IForumThread } from "./models/forum-models.js";
 import { CambridgeMTRecording } from "./Recording.js";

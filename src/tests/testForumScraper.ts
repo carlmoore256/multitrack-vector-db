@@ -2,7 +2,7 @@ import { saveJSON, loadJSON } from "../utils/utils.js";
 import { CambridgeMTForumScraper } from "../Forum.js";
 import { CambridgeMTRecording } from "../Recording.js";
 import { crawlForumPostingsForURL } from "../Forum.js";
-import { getForumId } from "../forumParsers.js";
+import { getForumId } from "../forum-parsers.js";
 
 async function test() {
 

@@ -1,5 +1,5 @@
 import path from "path";
-import { readdirSync, rmdirSync, renameSync } from "fs";
+import { readdirSync, rmdirSync, renameSync, existsSync, mkdirSync } from "fs";
 
 export function flattenDir(rootDir: string, originalDir?: string)  {
     const files = readdirSync(rootDir, { withFileTypes: true });
@@ -19,5 +19,11 @@ export function flattenDir(rootDir: string, originalDir?: string)  {
                 renameSync(res, dest); // Move files to rootDir
             }
         }
+    }
+}
+
+export function checkMakeDir(dir: string) {
+    if (!existsSync(dir)) {
+        mkdirSync(dir);
     }
 }

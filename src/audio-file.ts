@@ -37,8 +37,8 @@ export const SUPPORTED_FILE_TYPES = [
     'audio/x-vorbis',
 ];
 
-export function isSupportedFileType(type: string) : boolean {
-    const mimeType = mime.getType(type);
+export function isAudioFile(filepath: string) : boolean {
+    const mimeType = mime.getType(filepath);
     if (!mimeType) {
         return false;
     }
@@ -48,8 +48,8 @@ export function isSupportedFileType(type: string) : boolean {
     return SUPPORTED_FILE_TYPES.includes(mimeType);
 }
 
-export function getAudioFileInfo(filepath: string, id? : string) : IAudioFile | null {
-    if (!isSupportedFileType(filepath)) {
+export function createAudioFileInfo(filepath: string, id? : string) : IAudioFile | null {
+    if (!isAudioFile(filepath)) {
         Debug.logError(`File type ${filepath} is not supported`);
         return null;
     }

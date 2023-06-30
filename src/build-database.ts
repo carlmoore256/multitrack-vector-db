@@ -4,7 +4,7 @@ import { DatabaseClient } from "./database/DatabaseClient.js";
 import { Debug, LogColor } from "./utils/Debug.js";
 import { crawlForumPostingsForRecording, insertAllForumsIntoDatabase, crawlForumPostingsForURL } from "./Forum.js";
 import { CambridgeMTForumThreadScraper, crawlForumThreads } from "./ForumThread.js";
-import { getCambridgeForumListingURL } from "./forumParsers.js";
+import { getCambridgeForumListingURL } from "./forum-parsers.js";
 import { yesNoPrompt, selectPrompt } from "./cli/cli-promts.js";
 import { saveJSON } from "./utils/utils.js";
 import { CambridgeMTRecording } from "./Recording.js";
@@ -68,7 +68,7 @@ export async function parseAllForumThreads(query : string = DEFAULT_QUERY_FORUM_
     Debug.enableLogging = false;
 
     const timeStart = Date.now();
-    const recordings = await dbClient.query(query) as any[];
+    const recordings = await dbClient.queryRows(query) as any[];
 
     Debug.log("Inserting forum threads");
     
@@ -104,7 +104,7 @@ SELECT * FROM forum_thread WHERE forum_thread.replies > 10 ORDER BY forum_thread
 // this is expensive on network and storage, so query interesting ones
 export async function parseAllForumPosts(query : string = DEFAULT_QUERY_FORUM_POSTS) {
 
-    const threads = await dbClient.query(query) as IForumThread[];
+    const threads = await dbClient.queryRows(query) as IForumThread[];
     Debug.log(`Query returned ${threads.length} threads, starting crawl...`);
 
     const timeStart = Date.now();

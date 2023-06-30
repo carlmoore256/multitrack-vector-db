@@ -12,9 +12,9 @@ import { input } from '@inquirer/prompts';
 dotenv.config();
 
 
-export async function parseTables(sql : string, client : DatabaseClient) : Promise<{ [key : string] : ITable }> {
+export async function parseTables(sql: string, client: DatabaseClient): Promise<{ [key: string]: ITable }> {
     const tableStrings = sql.split(';');
-    const tables: { [key : string] : ITable } = {};
+    const tables: { [key: string]: ITable } = {};
 
     for (const cur of tableStrings) {
         const tableName = cur.match(/CREATE TABLE IF NOT EXISTS (\w+)/);
@@ -30,18 +30,18 @@ export async function parseTables(sql : string, client : DatabaseClient) : Promi
                 createQuery,
                 columns,
                 primaryKey,
-                insert : async (data : any) => table.insert(data),
-                insertMany : async (data : any[]) => table.insertMany(data),
-                upsert : async (data : any) => table.upsert(data, primaryKey),
-                upsertMany : async (data : any[]) => table.upsertMany(data, primaryKey),
-                query : async (query : Partial<any>) => table.query(query),
-                selectOne : async (query : Partial<any>) => table.selectOne(query),
-                getAll : async () => table.getAll(),
-                getById : async (id : string) => table.getById(id),
-                delete : async (query : Partial<any>) => table.delete(query),
-                deleteById : async (id : string) => table.deleteById(id),
-                truncate : async () => table.truncate(),
-                reset : async () => table.reset(createQuery),
+                insert: async (data: any) => table.insert(data),
+                insertMany: async (data: any[]) => table.insertMany(data),
+                upsert: async (data: any) => table.upsert(data, primaryKey),
+                upsertMany: async (data: any[]) => table.upsertMany(data, primaryKey),
+                query: async (query: Partial<any>) => table.query(query),
+                selectOne: async (query: Partial<any>) => table.selectOne(query),
+                getAll: async () => table.getAll(),
+                getById: async (id: string) => table.getById(id),
+                delete: async (query: Partial<any>) => table.delete(query),
+                deleteById: async (id: string) => table.deleteById(id),
+                truncate: async () => table.truncate(),
+                reset: async () => table.reset(createQuery),
             };
         }
     }
@@ -50,29 +50,29 @@ export async function parseTables(sql : string, client : DatabaseClient) : Promi
 
 
 interface ITable {
-    name : string;
-    table : DatabaseTable;
-    createQuery : string;
-    columns : ITableColumn[],
-    primaryKey? : string;
-    insert : (data : any) => Promise<any>;
-    insertMany : (data : any[]) => Promise<any>,
-    upsert : (data : any) => Promise<any>,
-    upsertMany : (data : any[]) => Promise<any>,
-    query : (query : Partial<any>) => Promise<any[]>,
-    selectOne : (query : Partial<any>) => Promise<any>,
-    getAll : () => Promise<any[]>,
-    getById : (id : string) => Promise<any>,
-    delete : (query : Partial<any>) => Promise<boolean>,
-    deleteById : (id : string) => Promise<boolean>,
-    truncate : () => Promise<void>,
-    reset : () => Promise<void>,
-} 
+    name: string;
+    table: DatabaseTable;
+    createQuery: string;
+    columns: ITableColumn[],
+    primaryKey?: string;
+    insert: (data: any) => Promise<any>;
+    insertMany: (data: any[]) => Promise<any>,
+    upsert: (data: any) => Promise<any>,
+    upsertMany: (data: any[]) => Promise<any>,
+    query: (query: Partial<any>) => Promise<any[]>,
+    selectOne: (query: Partial<any>) => Promise<any>,
+    getAll: () => Promise<any[]>,
+    getById: (id: string) => Promise<any>,
+    delete: (query: Partial<any>) => Promise<boolean>,
+    deleteById: (id: string) => Promise<boolean>,
+    truncate: () => Promise<void>,
+    reset: () => Promise<void>,
+}
 
 
 export class DatabaseClient {
     public db: pg.Client;
-    public tables : { [key : string] : ITable } = {};
+    public tables: { [key: string]: ITable } = {};
     public isConnected = false;
 
     constructor() {
@@ -89,10 +89,10 @@ export class DatabaseClient {
         Debug.log("Initialized tables", LogColor.Green);
         this.isConnected = true;
     }
-    
+
     public async createTables() {
         try {
-            this.tables = await this.loadSchema('./sql/create_tables.sql');            
+            this.tables = await this.loadSchema('./sql/create_tables.sql');
             Object.values(this.tables).forEach(async (table) => {
                 Debug.log(`Creating table ${table.name}`, LogColor.Green);
                 await this.db.query(table.createQuery);
@@ -103,7 +103,7 @@ export class DatabaseClient {
         }
     }
 
-    public async loadSchema(path : './sql/create_tables.sql') : Promise<{ [key : string] : ITable }> {
+    public async loadSchema(path: './sql/create_tables.sql'): Promise<{ [key: string]: ITable }> {
         const initTables = readFileSync(path, 'utf-8');
         return await parseTables(initTables, this);
     }
@@ -115,12 +115,12 @@ export class DatabaseClient {
     // initializes the tables and parses the cached html
     async initializeDatabaseDialog() {
         const choice = await selectPrompt<string>([
-            {value : 'none', name : "Continue without clearing"},
-            {value : 'quit', name : "Quit"},
-            {value : 'clear', name: "Clear all Tables"}, 
-            {value : 'reset', name : "Hard reset all Tables"},
+            { value: 'none', name: "Continue without clearing" },
+            { value: 'quit', name: "Quit" },
+            { value: 'clear', name: "Clear all Tables" },
+            { value: 'reset', name: "Hard reset all Tables" },
         ], "Would you like to clear or reset all tables before proceeding?");
-        
+
         if (choice === 'clear') {
             await this.clearTables();
         } else if (choice === 'reset') {
@@ -130,7 +130,7 @@ export class DatabaseClient {
         }
     }
 
-    async queryDialog(defaultQuery : string = '') : Promise<null | any> {
+    async queryDialog(defaultQuery: string = ''): Promise<null | any> {
         let inputQuery = defaultQuery;
         let query;
         // let usePrevious = false;
@@ -148,15 +148,15 @@ export class DatabaseClient {
             } catch (error) {
                 Debug.log("\n" + error + "\n", LogColor.White, 'ERROR', true);
             }
-            
+
             const choice = await selectPrompt<string>([
-                {value : 'confirm', name : "Confirm query (return result)"},
-                {value : 'continue', name : "Continue querying"},
-                {value : 'new', name : "New query"},
-                {value : 'exit', name : "[Exit]"}
+                { value: 'confirm', name: "Confirm query (return result)" },
+                { value: 'continue', name: "Continue querying" },
+                { value: 'new', name: "New query" },
+                { value: 'exit', name: "[Exit]" }
             ], "Select an option");
 
-            switch(choice) {
+            switch (choice) {
                 case 'continue':
                     inputQuery = query;
                     break;
@@ -172,13 +172,13 @@ export class DatabaseClient {
         }
     }
 
-    public async resetDialog(table : string | null = null) {
+    public async resetDialog(table: string | null = null) {
         if (!table) {
             // make tables into array of values
-            const choices = Object.values(this.tables).map(table => ({value : table.name, name : table.name}));
+            const choices = Object.values(this.tables).map(table => ({ value: table.name, name: table.name }));
             // const choices = Array.from(this.tables.values);
             table = await selectPrompt<string>([
-                {value : 'exit', name : "[Exit]"},
+                { value: 'exit', name: "[Exit]" },
                 ...choices
             ], "Select a table to reset");
             if (table === 'exit') {
@@ -187,13 +187,13 @@ export class DatabaseClient {
         }
 
         const resetChoice = await selectPrompt<string>([
-            {value : 'exit', name : "[Exit]"},
-            {value : 'truncate', name : "Truncate table (clear records)"},
-            {value : 'reset', name : "Hard reset (delete and re-create)"},
+            { value: 'exit', name: "[Exit]" },
+            { value: 'truncate', name: "Truncate table (clear records)" },
+            { value: 'reset', name: "Hard reset (delete and re-create)" },
         ], "Select a reset type");
-        
+
         let confirm = false;
-        switch(resetChoice) {
+        switch (resetChoice) {
             case 'exit':
                 return;
             case 'clear':
@@ -210,10 +210,10 @@ export class DatabaseClient {
     }
 
     public async databaseBrowserDialog() {
-        const choices = Object.values(this.tables).map(table => ({value : table.name, name : table.name}));
+        const choices = Object.values(this.tables).map(table => ({ value: table.name, name: table.name }));
         while (true) {
             const choice = await selectPrompt<string>([
-                {value : 'exit', name : "[Exit]"},
+                { value: 'exit', name: "[Exit]" },
                 ...choices
             ], "Select a table to browse");
             if (choice === 'exit') {
@@ -225,21 +225,21 @@ export class DatabaseClient {
             const res = await this.db.query(`SELECT * FROM ${choice} LIMIT 10;`);
             if (res.rows.length > 0) {
                 Debug.log(JSON.stringify(res.rows, null, 2) + "\n", LogColor.Green);
-            }  else {
+            } else {
                 Debug.log("\nNo results\n", LogColor.Red);
             }
         }
     }
 
-    public async tableBrowserDialog(tableName : string) {
+    public async tableBrowserDialog(tableName: string) {
         while (true) {
             const choice = await selectPrompt<string>([
-                {value : 'testQuery', name : "Run Test Query"},
-                {value : 'reset', name : "Reset Table"},
-                {value : 'primaryKey', name : "Get Primary Key"},
-                {value : 'exit', name : "[Exit]"},
+                { value: 'testQuery', name: "Run Test Query" },
+                { value: 'reset', name: "Reset Table" },
+                { value: 'primaryKey', name: "Get Primary Key" },
+                { value: 'exit', name: "[Exit]" },
             ], `Select an option for table ${tableName}`);
-            switch(choice) {
+            switch (choice) {
                 case 'testQuery':
                     await this.testQueryDialog(tableName);
                     break;
@@ -256,7 +256,7 @@ export class DatabaseClient {
         }
     }
 
-    public async testQueryDialog(tableName : string) {
+    public async testQueryDialog(tableName: string) {
         const query = `SELECT * FROM ${tableName} LIMIT 10;`;
         if (!query) {
             Debug.log(`No test query for table ${tableName}`, LogColor.Red);
@@ -274,7 +274,7 @@ export class DatabaseClient {
         }
     }
 
-    public async clearTableDialog(tableName : string) {
+    public async clearTableDialog(tableName: string) {
         const table = this.tables[tableName];
         const confirm = await yesNoPrompt(`Reset table ${tableName}?`);
         if (confirm) {
@@ -283,61 +283,67 @@ export class DatabaseClient {
         }
     }
 
-    public async updateTable(tableName : string) {
+    public async updateTable(tableName: string) {
         const table = this.tables[tableName];
-        
+
     }
 
-    public async deleteTables(tableNames : string[] | null = null) {
+    public async deleteTables(tableNames: string[] | null = null) {
         if (!tableNames) tableNames = Object.values(this.tables).map(table => table.name);
         const choice = await yesNoPrompt(`Are you sure you want to delete data in the following tables? (cascade) \n${tableNames}`);
         if (!choice) {
             throw new Error("Delete all tables cancelled");
         }
-        try {      
-          for (const table of tableNames) {
-            console.log(`Deleting table ${table}...`)
-            await this.db.query(`DROP TABLE ${table} CASCADE;`);
-          }
-      
-          console.log('Tables deleted successfully.');
+        try {
+            for (const table of tableNames) {
+                console.log(`Deleting table ${table}...`)
+                await this.db.query(`DROP TABLE ${table} CASCADE;`);
+            }
+
+            console.log('Tables deleted successfully.');
         } catch (error) {
-          console.error('Error deleting tables:', error);
+            console.error('Error deleting tables:', error);
         }
     }
 
-    public async hasEntries(tableName : string) {
+    public async hasEntries(tableName: string) {
         const res = await this.db.query(`SELECT EXISTS (SELECT 1 FROM ${tableName});`);
         return res.rows[0].exists;
     }
-    
 
-    public async hardResetTables(tableNames : string[] | null = null) {
+
+    public async hardResetTables(tableNames: string[] | null = null) {
         if (!tableNames) tableNames = Object.values(this.tables).map(table => table.name);
         console.log("Hard resetting database...");
         await this.deleteTables(tableNames);
         await this.createTables();
     }
 
-    public async clearTables(tableNames : string[] | null = null) {
+    public async clearTables(tableNames: string[] | null = null) {
         if (!tableNames) tableNames = Object.values(this.tables).map(table => table.name);
         const choice = await yesNoPrompt("Are you sure you want to truncate/clear every table?");
         if (!choice) {
             throw new Error("Truncate/clear all tables cancelled");
         }
         try {
-          for (const table of tableNames) {
-            console.log(`Clearing table ${table}...`)
-            await this.db.query(`TRUNCATE TABLE ${table} CASCADE;`);
-          }
-      
-          console.log('Tables cleared and reset successfully.');
-        } catch (error) {
-          console.error('Error clearing tables:', error);
-        }
-      }
+            for (const table of tableNames) {
+                console.log(`Clearing table ${table}...`)
+                await this.db.query(`TRUNCATE TABLE ${table} CASCADE;`);
+            }
 
-    public async query(query: string, params?: any[]) {
+            console.log('Tables cleared and reset successfully.');
+        } catch (error) {
+            console.error('Error clearing tables:', error);
+        }
+    }
+
+
+    public async query(query: string, params?: any[]): Promise<pg.QueryResult<any[]>> {
+        const res = await this.db.query(query, params);
+        return res;
+    }
+
+    public async queryRows(query: string, params?: any[]): Promise<any[] | null> {
         const res = await this.db.query(query, params);
         if (res.rows.length > 0) {
             return res.rows;
@@ -345,39 +351,39 @@ export class DatabaseClient {
         return null;
     }
 
-    public async insert(tableName: string, item: any) : Promise<boolean> {
+    public async insert(tableName: string, item: any): Promise<boolean> {
         const table = this.tables[tableName];
         return await table.insert(item);
     }
 
-    public async upsert(tableName: string, item: any) : Promise<boolean> {
+    public async upsert(tableName: string, item: any): Promise<boolean> {
         const table = this.tables[tableName];
         return await table.upsert(item);
     }
 
-    public async insertMany(tableName: string, items: any[]) : Promise<boolean> {
+    public async insertMany(tableName: string, items: any[]): Promise<boolean> {
         const table = this.tables[tableName];
         return await table.insertMany(items);
     }
 
-    public async upsertMany(tableName: string, items: any[]) : Promise<boolean> {
+    public async upsertMany(tableName: string, items: any[]): Promise<boolean> {
         const table = this.tables[tableName];
         return await table.upsertMany(items);
     }
 
-    public async selectOne(tableName: string, query : any) : Promise<any> {
+    public async selectOne(tableName: string, query: any): Promise<any> {
         // const table = new DatabaseTable(this.db, tableName);
         const table = this.tables[tableName];
         return await table.selectOne(query);
     }
 
-    public async getById(tableName: string, id: string) : Promise<any> {
+    public async getById(tableName: string, id: string): Promise<any> {
         // const table = new DatabaseTable(this.db, tableName);
         const table = this.tables[tableName];
         return await table.getById(id);
     }
 
-    public async create(tableName : string, item : any) {
+    public async create(tableName: string, item: any) {
         // const table = new DatabaseTable(this.db, tableName);
         const table = this.tables[tableName];
         const res = await table.insert(item);
@@ -387,7 +393,7 @@ export class DatabaseClient {
             console.log("Created item");
         }
     }
-    
+
     public async getPrimaryKeyOfTable(tableName: string): Promise<string | null> {
         const res = await this.db.query(`
             SELECT a.attname
@@ -403,10 +409,10 @@ export class DatabaseClient {
         return res.rows[0].attname;
     }
 
-    public async queryType<T>(tableName : string, query: Partial<T>): Promise<T[]> {
+    public async queryType<T>(tableName: string, query: Partial<T>): Promise<T[]> {
         const databaseTable = new DatabaseTable(this.db, tableName);
         return await databaseTable.query(query) as T[];
-    }  
+    }
 }
 
 export default DatabaseClient;

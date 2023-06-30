@@ -2,7 +2,7 @@ import { DatabaseClient } from "./database/DatabaseClient.js";
 import { Debug } from "./utils/Debug.js";
 import { yesNoPrompt, selectPrompt, inputPrompt, queryInputPrompt, queryBuilderPrompt } from "./cli/cli-promts.js";
 import { parseAllMultitracks, parseAllForumThreads, parseAllForumPosts, DEFAULT_QUERY_FORUM_POSTS, DEFAULT_QUERY_FORUM_THREADS } from "./build-database.js";
-import { downloadMultitrackFromDialog, generalQuery, downloadAllMultitracks } from "./downloading/download-querying.js";
+import { CambridgeMTDownloader } from "./downloading/CambridgeMTDownloader.js";
 
 const dbClient = new DatabaseClient();
 await dbClient.connect();
