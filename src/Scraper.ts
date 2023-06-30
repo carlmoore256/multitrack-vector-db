@@ -4,7 +4,7 @@ import { checkLoadCache } from "./utils/utils.js";
 import { CambridgeMTRecording } from "./Recording.js";
 import { CambridgeMTGenre, consolidateGenres } from "./Genre.js";
 import { CambridgeMTArtist, consolidateArtists } from "./Artist.js";
-import { CachedWebPage } from "./CachedWebPage.js";
+import { CachedWebPage } from "./downloading/CachedWebPage.js";
 import Debug from "./utils/Debug.js";
 
 const BASE_URL = "https://www.cambridge-mt.com/ms/mtk/";

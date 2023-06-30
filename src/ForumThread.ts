@@ -1,6 +1,6 @@
 import { getThreadId, parseForumThreadPosts, IForumPostData } from "./forumParsers.js";
 import { IForumUser, IForumThread } from "./models/forum-models.js";
-import { CachedWebPage } from "./CachedWebPage.js";
+import { CachedWebPage } from "./downloading/CachedWebPage.js";
 import Debug, { LogColor } from "./utils/Debug.js";
 import { IRecordingDownloadableResource } from "./models/cambridge-models.js";
 

@@ -8,6 +8,7 @@ import { DatabaseTable } from './DatabaseTable.js';
 import { Debug, LogColor } from '../utils/Debug.js';
 import dotenv from 'dotenv';
 import { table } from 'console';
+import { input } from '@inquirer/prompts';
 dotenv.config();
 
 
@@ -129,14 +130,16 @@ export class DatabaseClient {
         }
     }
 
-    async queryDialog() {
-        let query = "";
-        let usePrevious = false;
+    async queryDialog(defaultQuery : string = '') : Promise<null | any> {
+        let inputQuery = defaultQuery;
+        let query;
+        // let usePrevious = false;
         while (true) {
             console.log("\n====== Write your query ======\n\n\n");
-            query = await inputPrompt(">", usePrevious ? query : null);
+            query = await inputPrompt(">", inputQuery);
+            let res = null;
             try {
-                const res = await this.db.query(query);
+                res = await this.db.query(query);
                 if (res.rows.length > 0) {
                     Debug.log(JSON.stringify(res.rows, null, 2) + "\n", LogColor.Green);
                 } else {
@@ -147,6 +150,7 @@ export class DatabaseClient {
             }
             
             const choice = await selectPrompt<string>([
+                {value : 'confirm', name : "Confirm query (return result)"},
                 {value : 'continue', name : "Continue querying"},
                 {value : 'new', name : "New query"},
                 {value : 'exit', name : "[Exit]"}
@@ -154,11 +158,14 @@ export class DatabaseClient {
 
             switch(choice) {
                 case 'continue':
-                    usePrevious = true;
+                    inputQuery = query;
                     break;
                 case 'new':
-                    usePrevious = false;
+                    inputQuery = '';
                     break;
+                case 'confirm':
+                    if (!res || !res?.rows) return [];
+                    return res?.rows;
                 case 'exit':
                     return;
             }
@@ -338,15 +345,9 @@ export class DatabaseClient {
         return null;
     }
 
-    public async insert(tableName: string, item: any, upsert : boolean = true) : Promise<boolean> {
+    public async insert(tableName: string, item: any) : Promise<boolean> {
         const table = this.tables[tableName];
-        var res = false;
-        if (upsert) {
-            res = await table.upsert(item);
-        } else {
-            res = await table.insert(item);
-        }
-        return res;
+        return await table.insert(item);
     }
 
     public async upsert(tableName: string, item: any) : Promise<boolean> {

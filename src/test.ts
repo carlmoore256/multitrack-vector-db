@@ -7,18 +7,21 @@
 // import test from "./tests/testForumScraper.js";
 // test();
 
-import dbClient from "./database/dbClient.js";
-const test = new dbClient();
+import { unzipMultitracks } from "./datastore/unzip.js";
+import Database from "./database/DatabaseClient.js";
+import { flattenDir } from "./utils/files.js";
 
-test.connect().then(async () => {
-    console.log("Connected to database");
-    // const genres = await test.getAllGenres();
-    // console.log(genres);
-    // const artists = await test.getAllArtists();
+const path = `E:/cambridge-mt-scraper/data/storage/7e95093d-690c-4d64-b06b-346a0958c3c4`;
 
-    // console.log(artists);
-    // const recordings = await test.getAllRecordings();
-    // console.log(recordings);
-    // await test.disconnect();
-    // console.log("Disconnected from database");
-});
+flattenDir(path);
+
+// const dbClient = new Database();
+
+// dbClient.connect().then(async () => {
+//     console.log("Connected to database");
+    
+
+
+// });
+
+

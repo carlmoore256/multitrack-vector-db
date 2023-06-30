@@ -2,7 +2,7 @@ import { IArtist, IGenre, IArtistResource } from "./models/cambridge-models.js";
 import { getTextContent, generateId, generateHashId } from "./utils/utils.js";
 import { CambridgeMTGenre } from "./Genre.js";
 import { IDatabaseWriteable } from "./database/IDatabaseObject.js";
-import { DatabaseClient } from "./database/dbClient.js";
+import { DatabaseClient } from "./database/DatabaseClient.js";
 import { CambridgeMTRecording } from "./Recording.js";
 import pg from "pg";
 
@@ -94,7 +94,7 @@ export class CambridgeMTArtist implements IArtist, IDatabaseWriteable {
             const genreSuccess = await db.insert('artist_genre', {
                 artist_id: this.id,
                 genre_id: genre.id
-            }, false);
+            });
             if (!genreSuccess) {
                 return false;
             }

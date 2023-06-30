@@ -1,13 +1,15 @@
-import { IMultitrackRecording, IRecordingDownloadableResource, RecordingDownloadableResourceType } from "./models/cambridge-models.js";
-import DatabaseClient from "./database/dbClient.js";
-import { generateId } from "./utils/utils.js";
+import { IMultitrackRecording, IRecordingDownloadableResource, RecordingDownloadableResourceType } from "../models/cambridge-models.js";
+import DatabaseClient from "../database/DatabaseClient.js";
+import { generateId } from "../utils/utils.js";
 import axios from 'axios'; // or use any other HTTP client
 import path from "path";
-import { createWriteStream, existsSync, mkdirSync } from 'fs';
-import { Debug } from "./utils/Debug.js";
-import { unzipFile } from "./unzip.js";
-import { STORAGE_ROOT } from "./definitions.js";
-import { unzipMultitracks } from "./unzip.js";
+import { createWriteStream, existsSync, mkdirSync, copyFileSync, copyFile, unlinkSync, chmodSync } from 'fs';
+import { Debug } from "../utils/Debug.js";
+import { unzipFile } from "../datastore/unzip.js";
+import { STORAGE_ROOT, DOWNLOAD_TEMP_DIR } from "../definitions.js";
+import { unzipMultitracks } from "../datastore/unzip.js";
+import { getRecordingDestinationPath } from "../Recording.js";
+import { IAudioFile } from "../models/audio-models.js";
 
 export interface DownloadCallbacks {
     onComplete: (download: IDownloadJob) => void;
@@ -46,16 +48,18 @@ export class DownloadManager {
 
     public queue: IDownloadJob[] = [];
 
-    public maxConcurrent = 3;
+    public active : IDownloadJob[] = [];
+
+    public maxConcurrent = 2;
 
     public defaultTTL = 5 * 60 * 1000; // 5 minutes
 
-    private watchdog: NodeJS.Timeout | null = null;
+    private static watchdog: NodeJS.Timeout | null = null;
 
     private async startWatchdog() {
-        if (!this.watchdog) {
+        if (!DownloadManager.watchdog) {
             Debug.log('Starting watchdog');
-            this.watchdog = setInterval(() => {
+            DownloadManager.watchdog = setInterval(() => {
                 this.queue.forEach((download) => {
                     if (download.status === 'failed') {
                         this.downloadResource(download);
@@ -74,17 +78,27 @@ export class DownloadManager {
                         }
                     }
                 });
-            });
+            }, 1000);
+        }
+    }
+    
+    private processQueue() {
+        if (this.queue.length > 0 && this.active.length < this.maxConcurrent) {
+            const nextJob = this.queue.shift();  // take the next job from the queue
+            if (nextJob) {
+                this.active.push(nextJob);  // add it to the active jobs
+                this.downloadResource(nextJob);  // and start downloading
+            }
         }
     }
 
     private async downloadResource(download: IDownloadJob) {
         // check to see if the download can proceed
         if (this.queue.length > this.maxConcurrent) {
-            Debug.log(`Max concurrent downloads reached (${this.maxConcurrent})`);
+            // Debug.log(`Max concurrent downloads reached (${this.maxConcurrent})`);
             setTimeout(() => {
                 this.downloadResource(download);
-            }, 1000);
+            }, 5000);
             return;
         }
 
@@ -103,6 +117,9 @@ export class DownloadManager {
                     Debug.log('Download cancelled');
                     return;
                 }
+                if (download.status == 'pending') {
+                    download.status = 'downloading';
+                }
                 download.lastUpdated = new Date();
                 const lastSize = download.downloadedBytes;
                 const currentSize = download.downloadedBytes + chunk.length;
@@ -115,10 +132,17 @@ export class DownloadManager {
 
             writer.on('finish', () => {
                 download.status = 'completed';
+                writer.end();
+                modifyFilePermissions(download.downloadPath, 0o644);
+                
+                this.active = this.active.filter(job => job !== download);  // remove the job from the active jobs
+                this.processQueue();  // process the queue again after a job has finished
+
+
                 download.onComplete(download);
-                if (this.watchdog && this.queue.length === 0) {
-                    clearInterval(this.watchdog);
-                    this.watchdog = null;
+                if (DownloadManager.watchdog && this.queue.length === 0) {
+                    clearInterval(DownloadManager.watchdog);
+                    DownloadManager.watchdog = null;
                 }
             });
 
@@ -137,8 +161,8 @@ export class DownloadManager {
 
     // public void updateBandwidthUsage()
 
-    public addToQueue(resource: IRecordingDownloadableResource, callbacks: DownloadCallbacks): string {
-        const downloadPath = path.join(STORAGE_ROOT, resource.filename);
+    public addToQueue(resource: IRecordingDownloadableResource, callbacks: DownloadCallbacks, downloadPath? : string): string {
+        downloadPath = downloadPath ?? path.join(DOWNLOAD_TEMP_DIR, resource.filename);
 
         const token = generateId();
         const error: string[] = [];
@@ -170,66 +194,13 @@ export class DownloadManager {
             }
         });
         this.queue.push(download);
-        this.downloadResource(download);
+        // this.downloadResource(download);
+        this.processQueue();
         return token;
     }
 }
 
-export async function downloadMultitrackRecording(
-        dbClient: DatabaseClient,
-        recording : IMultitrackRecording, 
-        type : RecordingDownloadableResourceType | "all" = "multitrack") 
-{
-    const manager = DownloadManager.Instance;
-    const callbacks : DownloadCallbacks = {
-        onComplete: async (job : IDownloadJob) => {
-            const audioFiles = await unzipMultitracks(recording, job);
-            audioFiles.forEach(a => dbClient.insert('audio_file', a));
-        },
-        onError: (e) => {
-            console.error(`Error downloading file: ${e}`);
-        },
-        onProgress: (progress) => {
-            console.log(`Download progress: ${progress}`);
-        }
-    }
-
-    var query = `
-    SELECT
-        id, type, filename, url, bytes
-    FROM
-        multitrack_recording_download
-    WHERE
-        recording_id = ${recording.id}
-    `
-    if (type !== "all") query += `AND type = ${type}`;
-
-    const results = await dbClient.query(query);
-    if (!results) throw new Error("No results found");
-
-    for (let resource of results) {
-        if (!resource.url) continue;
-        Debug.log(`Downloading ${resource.url}`);
-        manager.addToQueue(resource, callbacks);
-    }
-}
-            
-// make sure to have the most up to date info, because there could be
-// concurrent downloads
-// const currentEntry = await dbClient.getById('multitrack_recording', recording.id);
-// await dbClient.upsert('multitrack_recording', {
-//     id: recording.id,
-//     files: [job.downloadPath, ...currentEntry.files]
-//     // downloaded: true
-// })
-
-// we need to wait to unzip the file until all the files are downloaded
-// await dbClient.insert('audio_file', {
-//     id: generateId(),
-//     // uri: downloadPath,
-//     // name: resource.filename,
-//     tags: null,
-//     bytes: job.totalBytes,
-//     metadata: {},
-//     recording_id: recording.id
-// })
+function modifyFilePermissions(filePath : string, permissions : any = 0o644) {
+    const res = chmodSync(filePath, permissions);
+  }
+  

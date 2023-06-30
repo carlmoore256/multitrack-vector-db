@@ -1,4 +1,3 @@
--- IDatabaseWriteable
 CREATE TABLE IF NOT EXISTS genre (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -59,10 +58,9 @@ CREATE TABLE IF NOT EXISTS audio_file (
     name TEXT NOT NULL,
     tags TEXT,
     bytes BIGINT,
-    metadata TEXT,
-    recording_id TEXT NOT NULL,
-    FOREIGN KEY(recording_id) REFERENCES multitrack_recording
-(id)
+    metadata TEXT
+    -- recording_id TEXT NOT NULL,
+    -- FOREIGN KEY(recording_id) REFERENCES multitrack_recording(id)
 );
 
 
@@ -72,11 +70,11 @@ CREATE TABLE IF NOT EXISTS recording_genre (
     recording_id TEXT NOT NULL,
     genre_id TEXT NOT NULL,
     PRIMARY KEY(recording_id, genre_id),
-    FOREIGN KEY(recording_id) REFERENCES multitrack_recording
-(id),
+    FOREIGN KEY(recording_id) REFERENCES multitrack_recording(id),
     FOREIGN KEY(genre_id) REFERENCES genre(id)
 );
 
+-- a junction table connecting an audio file to a recording
 CREATE TABLE IF NOT EXISTS recording_file (
     recording_id TEXT NOT NULL,
     file_id TEXT NOT NULL,

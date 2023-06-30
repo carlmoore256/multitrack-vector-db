@@ -2,9 +2,14 @@ import { IMultitrackRecording, IRecordingDownloadableResource } from "./models/c
 import { getTextContent, getAttributeValue, parseNumberFromString, generateId, generateHashId } from "./utils/utils.js";
 import { CambridgeMTArtist } from "./Artist.js";
 import { IMultitrackRecordingEntity } from "./models/entity-models.js";
-import { DatabaseClient } from "./database/dbClient.js";
+import { DatabaseClient } from "./database/DatabaseClient.js";
 import { IDatabaseWriteable } from "./database/IDatabaseObject.js";
 import Database from "better-sqlite3";
+
+import path from "path";
+import { existsSync, mkdirSync } from "fs";
+import { Debug } from "./utils/Debug.js";
+import { STORAGE_ROOT } from "./definitions.js";
 
 
 
@@ -17,6 +22,17 @@ enum CambridgeMTMixType {
 type CambridgeMTMix = {
     fullPreview? : IRecordingDownloadableResource;
     excerptPreview? : IRecordingDownloadableResource;
+}
+
+export function getRecordingDestinationPath(
+    recording : IMultitrackRecording,
+) {
+    const outputDir = path.join(STORAGE_ROOT, recording.id);
+    if (!existsSync(outputDir)) {
+        Debug.log(`Creating output directory: ${outputDir}`);
+        mkdirSync(outputDir);
+    }
+    return outputDir;
 }
 
 
@@ -153,7 +169,7 @@ export class CambridgeMTRecording implements IMultitrackRecording, IDatabaseWrit
             const genreInsertSuccess = await db.insert("recording_genre", {
                 recording_id: this.id,
                 genre_id: genre.id
-            }, false);
+            });
             if(!genreInsertSuccess) {
                 return false;
             }

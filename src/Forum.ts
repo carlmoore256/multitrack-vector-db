@@ -1,8 +1,8 @@
 import { getCambridgeForumListingURL, getForumId, parseThread } from "./forumParsers.js";
-import { CachedWebPage } from "./CachedWebPage.js";
+import { CachedWebPage } from "./downloading/CachedWebPage.js";
 import { IForumThread } from "./models/forum-models.js";
 import { CambridgeMTRecording } from "./Recording.js";
-import { DatabaseClient } from "./database/dbClient.js";
+import { DatabaseClient } from "./database/DatabaseClient.js";
 import Debug, { LogColor } from "./utils/Debug.js";
 
 

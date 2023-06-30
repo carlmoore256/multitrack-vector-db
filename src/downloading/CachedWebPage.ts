@@ -1,5 +1,5 @@
 import {JSDOM} from "jsdom";
-import { checkLoadCache, convertUrlToFileName } from "./utils/utils.js";
+import { checkLoadCache, convertUrlToFileName } from "../utils/utils.js";
 
 export class CachedWebPage {
 

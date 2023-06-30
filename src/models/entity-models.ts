@@ -48,3 +48,9 @@ export interface IForumThreadEntity {
     hasAttachment? : boolean;
 }
 
+// connects an audio file to a recording
+export interface IRecordingFileEntity {
+    recording_id : string;
+    file_id : string;
+}
+

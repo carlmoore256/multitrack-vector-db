@@ -1,5 +1,5 @@
 import { IGenre } from "./models/cambridge-models.js";
-import { DatabaseClient } from "./database/dbClient.js";
+import { DatabaseClient } from "./database/DatabaseClient.js";
 import { IDatabaseWriteable } from "./database/IDatabaseObject.js";
 import { Debug, LogColor } from "./utils/Debug.js";
 export class CambridgeMTGenre implements IGenre, IDatabaseWriteable {

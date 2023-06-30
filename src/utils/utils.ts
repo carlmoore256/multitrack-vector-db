@@ -91,4 +91,3 @@ export function convertUrlToFileName(url : string) {
     const fileName = sanitizedUrl.substring(0, 255); 
     return fileName;
 }
-  
