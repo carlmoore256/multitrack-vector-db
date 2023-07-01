@@ -1,9 +1,9 @@
-import { getTextContent, getAttributeValue } from "./utils/utils.js";
-import { IForumThread, IForumPost, IForumUser } from "./models/forum-models.js";
-import { IRecordingDownloadableResource, RecordingDownloadableResourceType } from "./models/cambridge-models.js";
-import Debug, { LogColor } from "./utils/Debug.js";
+import { getTextContent, getAttributeValue } from "../utils/utils.js";
+import { IForumThread, IForumPost, IForumUser } from "../models/forum-models.js";
+import { IRecordingDownloadableResource, RecordingDownloadableResourceType } from "../models/cambridge-models.js";
+import Debug, { LogColor } from "../utils/Debug.js";
 import { CambridgeMTArtist } from "./Artist.js";
-import { CambridgeMTRecording } from "./Recording.js";
+import { CambridgeMTRecording } from "./MultitrackRecording.js";
 
 
 export const getCambridgeForumListingURL = (forumId: number): string => {

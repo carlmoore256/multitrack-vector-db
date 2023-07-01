@@ -1,9 +1,9 @@
-import { IArtist, IGenre, IArtistResource } from "./models/cambridge-models.js";
-import { getTextContent, generateId, generateHashId } from "./utils/utils.js";
+import { IArtist, IGenre, IArtistResource } from "../models/cambridge-models.js";
+import { getTextContent, generateId, generateHashId } from "../utils/utils.js";
 import { CambridgeMTGenre } from "./Genre.js";
-import { IDatabaseWriteable } from "./database/IDatabaseObject.js";
-import { DatabaseClient } from "./database/DatabaseClient.js";
-import { CambridgeMTRecording } from "./Recording.js";
+import { IDatabaseWriteable } from "../database/IDatabaseObject.js";
+import { DatabaseClient } from "../database/DatabaseClient.js";
+import { CambridgeMTRecording } from "./MultitrackRecording.js";
 import pg from "pg";
 
 export class CambridgeMTArtist implements IArtist, IDatabaseWriteable {

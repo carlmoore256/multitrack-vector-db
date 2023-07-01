@@ -1,8 +1,8 @@
 import { getThreadId, parseForumThreadPosts, IForumPostData } from "./forum-parsers.js";
-import { IForumUser, IForumThread } from "./models/forum-models.js";
-import { CachedWebPage } from "./downloading/CachedWebPage.js";
-import Debug, { LogColor } from "./utils/Debug.js";
-import { IRecordingDownloadableResource } from "./models/cambridge-models.js";
+import { IForumUser, IForumThread } from "../models/forum-models.js";
+import { CachedWebPage } from "../downloading/CachedWebPage.js";
+import Debug, { LogColor } from "../utils/Debug.js";
+import { IRecordingDownloadableResource } from "../models/cambridge-models.js";
 
 export class CambridgeMTForumThreadScraper extends CachedWebPage {
 

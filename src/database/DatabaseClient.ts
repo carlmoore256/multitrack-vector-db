@@ -16,12 +16,15 @@ export async function parseTables(sql: string, client: DatabaseClient): Promise<
     const tableStrings = sql.split(';');
     const tables: { [key: string]: ITable } = {};
 
+    
     for (const cur of tableStrings) {
         const tableName = cur.match(/CREATE TABLE IF NOT EXISTS (\w+)/);
         if (tableName) {
             const name = tableName[1];
             const columns = parseColumns(cur);
-            const primaryKey = await client.getPrimaryKeyOfTable(name) || columns[0].key;
+            // Debug.log(`trying to create database table ${name}`, LogColor.Yellow);
+            // const primaryKey = await client.getPrimaryKeyOfTable(name) || columns[0].key;
+            const primaryKey = columns.find(c => c.primary)?.key || columns[0].key;
             const table = new DatabaseTable(client.db, name);
             const createQuery = cur + ';';
             tables[name] = {
@@ -42,7 +45,7 @@ export async function parseTables(sql: string, client: DatabaseClient): Promise<
                 deleteById: async (id: string) => table.deleteById(id),
                 truncate: async () => table.truncate(),
                 reset: async () => table.reset(createQuery),
-            };
+            }
         }
     }
     return tables;
@@ -86,7 +89,6 @@ export class DatabaseClient {
     public async connect() {
         await this.db.connect();
         await this.createTables();
-        Debug.log("Initialized tables", LogColor.Green);
         this.isConnected = true;
     }
 
@@ -94,12 +96,12 @@ export class DatabaseClient {
         try {
             this.tables = await this.loadSchema('./sql/create_tables.sql');
             Object.values(this.tables).forEach(async (table) => {
-                Debug.log(`Creating table ${table.name}`, LogColor.Green);
+                // Debug.log(`Creating table ${table.name}`, LogColor.Green);
                 await this.db.query(table.createQuery);
             });
             Debug.log("Initialized tables", LogColor.Green);
         } catch (error) {
-            console.error('Error creating tables:', error);
+            throw new Error('Error creating tables: ' + error);
         }
     }
 

@@ -8,7 +8,7 @@ import { Debug } from "../utils/Debug.js";
 import { unzipFile } from "../datastore/unzip.js";
 import { STORAGE_ROOT, DOWNLOAD_TEMP_DIR } from "../definitions.js";
 import { unzipAudioFiles } from "../datastore/unzip.js";
-import { getRecordingDestinationPath } from "../Recording.js";
+import { getRecordingDestinationPath } from "../parsing/MultitrackRecording.js";
 import { IAudioFile } from "../models/audio-models.js";
 
 export interface DownloadCallbacks {

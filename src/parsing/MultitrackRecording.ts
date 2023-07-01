@@ -1,15 +1,12 @@
-import { IMultitrackRecording, IRecordingDownloadableResource } from "./models/cambridge-models.js";
-import { getTextContent, getAttributeValue, parseNumberFromString, generateId, generateHashId } from "./utils/utils.js";
+import { IMultitrackRecording, IRecordingDownloadableResource } from "../models/cambridge-models.js";
+import { getTextContent, getAttributeValue, parseNumberFromString, generateId, generateHashId } from "../utils/utils.js";
 import { CambridgeMTArtist } from "./Artist.js";
-import { IMultitrackRecordingEntity } from "./models/entity-models.js";
-import { DatabaseClient } from "./database/DatabaseClient.js";
-import { IDatabaseWriteable } from "./database/IDatabaseObject.js";
-import Database from "better-sqlite3";
-
+import { DatabaseClient } from "../database/DatabaseClient.js";
+import { IDatabaseWriteable } from "../database/IDatabaseObject.js";
 import path from "path";
 import { existsSync, mkdirSync } from "fs";
-import { Debug } from "./utils/Debug.js";
-import { STORAGE_ROOT } from "./definitions.js";
+import { Debug } from "../utils/Debug.js";
+import { STORAGE_ROOT } from "../definitions.js";
 
 
 

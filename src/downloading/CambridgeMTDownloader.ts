@@ -2,15 +2,11 @@ import { IMultitrackRecording, IRecordingDownloadableResource, RecordingDownload
 import DatabaseClient from "../database/DatabaseClient.js";
 import { generateId } from "../utils/utils.js";
 import path from "path";
-import { createWriteStream, existsSync, mkdirSync, copyFileSync, copyFile, unlinkSync, chmodSync } from 'fs';
 import { Debug } from "../utils/Debug.js";
-import { unzipFile } from "../datastore/unzip.js";
-import { STORAGE_ROOT, DOWNLOAD_TEMP_DIR } from "../definitions.js";
 import { unzipAudioFiles } from "../datastore/unzip.js";
-import { getRecordingDestinationPath } from "../Recording.js";
+import { getRecordingDestinationPath } from "../parsing/MultitrackRecording.js";
 import { IAudioFile } from "../models/audio-models.js";
 import { DownloadManager, IDownloadJob, DownloadCallbacks } from "./DownloadManager.js";
-import { addAudioFileToDatabase } from "../audio-file.js";
 import { MultitrackDatastore } from "../datastore/MultitrackDatastore.js";
 
 export class CambridgeMTDownloader {
@@ -27,12 +23,11 @@ export class CambridgeMTDownloader {
 
     // supply a client and a string query
     public async downloadFromQuery(
-        dbClient: DatabaseClient,
         query: string,
         type : RecordingDownloadableResourceType | "all" = "multitrack"
     ) {
    
-        const res = await dbClient.queryRows(query);
+        const res = await this.dbClient.queryRows(query);
         if (!res || res?.length === 0) {
             console.log('No recordings found');
             return;
@@ -45,7 +40,7 @@ export class CambridgeMTDownloader {
         }
         
         recordings.forEach(async (recording) => {
-            const resources = await dbClient.queryRows('multitrack_recording_download', { 
+            const resources = await this.dbClient.queryRows('multitrack_recording_download', { 
                 recording_id: recording.id
             } as any);
     
@@ -60,12 +55,12 @@ export class CambridgeMTDownloader {
             }
             this.downloadManager.addToQueue(resource, {
                 onComplete: async (job : IDownloadJob) => {
-                    const audioFiles = await unzipAudioFiles(recording, job);
-                    if (!audioFiles) {
-                        Debug.logError(`Error unzipping multitrack recording ${recording.name}`);
-                        return;
-                    };
-                    audioFiles.forEach(a => addAudioFileToDatabase(dbClient, a, recording));
+                    // const audioFiles = await unzipAudioFiles(job.downloadPath, );
+                    // if (!audioFiles) {
+                    //     Debug.logError(`Error unzipping multitrack recording ${recording.name}`);
+                    //     return;
+                    // };
+                    // audioFiles.forEach(a => addAudioFileToDatabase(dbClient, a, recording));
                 },
                 onError: (e) => {
                     console.error(`Error downloading file: ${e}`);
@@ -79,10 +74,9 @@ export class CambridgeMTDownloader {
 
     
     public async downloadAllMultitracks(
-        dbClient: DatabaseClient,
         limit : number = 10,
     ) {
-        const query = await dbClient.queryDialog(`--sql
+        const query = await this.dbClient.queryDialog(`--sql
             SELECT 
                 multitrack_recording.id as id,
                 multitrack_recording.name as recording_name,
@@ -118,15 +112,14 @@ export class CambridgeMTDownloader {
     
         for (const recording of query) {
             Debug.log(`Downloading ${recording.recording_name} | ${recording.total_megabytes} MB`);
-            await this.downloadMultitrackRecording(dbClient, recording, "multitrack");
+            await this.downloadMultitrackRecording(recording, "multitrack");
         }
     }
     
     public async downloadMultitrackFromDialog(
-        dbClient: DatabaseClient,
         type : RecordingDownloadableResourceType |  "all" = "multitrack"
     ) {
-        const query = await dbClient.queryDialog(`
+        const query = await this.dbClient.queryDialog(`
             SELECT 
                 multitrack_recording.id as id,
                 multitrack_recording.name as recording_name,
@@ -155,7 +148,7 @@ export class CambridgeMTDownloader {
         console.log(`Downloading ${query.length} recordings`);
     
         for(const recording of query) {
-            await this.downloadMultitrackRecording(dbClient, recording, type);
+            await this.downloadMultitrackRecording(recording, type);
         }
     
         // (query as IMultitrackRecording[]).forEach(async (recording) => {
@@ -187,7 +180,6 @@ export class CambridgeMTDownloader {
     
     // helper to query and download tracks
     public async downloadMultitrackRecording(
-            dbClient: DatabaseClient,
             recording : IMultitrackRecording, 
             type : RecordingDownloadableResourceType | "all" = "multitrack") 
     {    
@@ -203,7 +195,7 @@ export class CambridgeMTDownloader {
         if (type !== "all") query += `AND type = '${type}'`;
     
         Debug.log(`Gonna run the query: ${query}`);
-        const results = await dbClient.queryRows(query);
+        const results = await this.dbClient.queryRows(query);
         if (!results) {
             // throw new Error("No results found");
             Debug.logError("No results found");
@@ -218,21 +210,21 @@ export class CambridgeMTDownloader {
     
                     if (job.resource.type === "multitrack") {
                         Debug.log(`[NOW RUNNING] Unzipping ${job.downloadPath}`);
-                        const audioFiles = await unzipAudioFiles(recording, job);
+                        const audioFiles = await unzipAudioFiles(job.downloadPath, destDir);
                         if (!audioFiles) {
                             console.error(`Error unzipping ${job.downloadPath}`);
                             return;
                         }
                         // insert the audio files into the database
-                        audioFiles.forEach(a => dbClient.insert('audio_file', a));
+                        audioFiles.forEach(a => this.dbClient.insert('audio_file', a));
                         // set up the junction table entries that link a recording to an audiofile
-                        audioFiles.forEach(a => dbClient.insert('recording_file', {
+                        audioFiles.forEach(a => this.dbClient.insert('recording_file', {
                             recording_id: recording.id,
                             file_id: a.id,
                         }));
                     } else {
                         const audioFile = this.finalizeSingleDownload(job, resource, recording);
-                        dbClient.insert('audio_file', audioFile);
+                        this.dbClient.insert('audio_file', audioFile);
                     }
                 },
                 onError: (e) => {

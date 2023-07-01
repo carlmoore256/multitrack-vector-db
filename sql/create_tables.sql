@@ -64,6 +64,18 @@ CREATE TABLE IF NOT EXISTS audio_file (
 );
 
 
+CREATE TABLE IF NOT EXISTS datastore_file (
+    id TEXT PRIMARY KEY,
+    path TEXT NOT NULL,
+    name TEXT NOT NULL,
+    bytes BIGINT,
+    extension TEXT,
+    type TEXT,
+    created_at DATETIME,
+    updated_at DATETIME,
+    metadata TEXT
+);
+
 -- a junction table for a genre assigned to a recording, because it's a many-to-many
 -- relationship, since each recording can have multiple genres
 CREATE TABLE IF NOT EXISTS recording_genre (

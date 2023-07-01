@@ -1,9 +1,9 @@
 import { getCambridgeForumListingURL, getForumId, parseThread } from "./forum-parsers.js";
-import { CachedWebPage } from "./downloading/CachedWebPage.js";
-import { IForumThread } from "./models/forum-models.js";
-import { CambridgeMTRecording } from "./Recording.js";
-import { DatabaseClient } from "./database/DatabaseClient.js";
-import Debug, { LogColor } from "./utils/Debug.js";
+import { CachedWebPage } from "../downloading/CachedWebPage.js";
+import { IForumThread } from "../models/forum-models.js";
+import { CambridgeMTRecording } from "./MultitrackRecording.js";
+import { DatabaseClient } from "../database/DatabaseClient.js";
+import Debug, { LogColor } from "../utils/Debug.js";
 
 
 export class CambridgeMTForumScraper extends CachedWebPage {

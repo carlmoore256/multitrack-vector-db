@@ -1,12 +1,12 @@
-import {JSDOM} from "jsdom";
+import { JSDOM } from "jsdom";
 import { checkLoadCache, convertUrlToFileName } from "../utils/utils.js";
 
 export class CachedWebPage {
 
-    private _page : Document | null = null;
-    private _cacheId : string;
+    private _page: Document | null = null;
+    private _cacheId: string;
 
-    constructor(public id : string, public pageURL : string) {
+    constructor(public id: string, public pageURL: string) {
         this._cacheId = convertUrlToFileName(pageURL);
     }
 
@@ -17,7 +17,7 @@ export class CachedWebPage {
         this._page = page.window.document;
     }
 
-    get page() : Document {
+    get page(): Document {
         if (!this._page) {
             throw new Error("Page not loaded, call init()");
         }

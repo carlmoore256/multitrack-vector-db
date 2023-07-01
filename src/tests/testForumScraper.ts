@@ -1,8 +1,8 @@
 import { saveJSON, loadJSON } from "../utils/utils.js";
-import { CambridgeMTForumScraper } from "../Forum.js";
-import { CambridgeMTRecording } from "../Recording.js";
-import { crawlForumPostingsForURL } from "../Forum.js";
-import { getForumId } from "../forum-parsers.js";
+import { CambridgeMTForumScraper } from "../parsing/Forum.js";
+import { CambridgeMTRecording } from "../parsing/MultitrackRecording.js";
+import { crawlForumPostingsForURL } from "../parsing/Forum.js";
+import { getForumId } from "../parsing/forum-parsers.js";
 
 async function test() {
 
