@@ -1,13 +1,7 @@
-
-export interface IQueryable {
-    toDatabaseRow : () => any;
-    toDatabaseKVP : () => { keys: string[], values: any[] };
-    toInsertQuery : (tableName : string) => { query: string, values: any[] };
-    toSelectQuery : (tableName : string, idField: string) => { query: string, values: any[] };
-    toUpdateQuery : (tableName : string, idField: string) => { query: string, values: any[] };
-    toDeleteQuery : (tableName: string, idField: string) => { query: string, values: any[] };
-}
-
+import { IQueryable } from "../database/IQueryable.js";
+import { statSync, existsSync } from "fs";
+import { getMimeType } from "../utils/files.js";
+import path from "path";
 
 export class DatastoreFile implements IQueryable {
 
@@ -21,9 +15,8 @@ export class DatastoreFile implements IQueryable {
         public createdAt : Date,
         public updatedAt : Date,
         public metadata : any
-    ) {}
-
-
+    ) {}       
+        
     public static fromDatabaseRow(row : any) : DatastoreFile {
         return new DatastoreFile(
             row.id,
@@ -71,8 +64,7 @@ export class DatastoreFile implements IQueryable {
         const query = `SELECT ${keys.join(', ')} FROM ${tableName} WHERE ${idField}=$1`;
         return { query, values: [this.id] };
     }
-
-
+    
     public toUpdateQuery(tableName: string, idField: string) : { query: string, values: any[] } {
         const { keys, values } = this.toDatabaseKVP();
         const placeholders = keys.map((key, i) => `${key}=$${i + 2}`); // we start from $2 because $1 is reserved for the id
@@ -80,12 +72,10 @@ export class DatastoreFile implements IQueryable {
         return { query, values: [this.id, ...values] }; // Corrected here
     }
     
-
     public toDeleteQuery(tableName: string, idField: string) : { query: string, values: any[] } {
         const query = `DELETE FROM ${tableName} WHERE ${idField}=$1`;
         return { query, values: [this.id] };
     }
-    
 }
 
 
@@ -98,7 +88,7 @@ export class DatastoreFile implements IQueryable {
 //     public abstract toDatabaseRow() : any;
 
 //     public toDatabaseKVP() : { keys: string[], values: any[] } {
-//         const row = this.toDatabaseRow();
+    //         const row = this.toDatabaseRow();
 //         const keys = Object.keys(row);
 //         const values = Object.values(row);
 //         return { keys, values };
@@ -110,4 +100,35 @@ export class DatastoreFile implements IQueryable {
 
 //     public abstract toDeleteQuery() : string;
 
+
+// public static fromNewFile(params : {
+//         id : string,
+//         directoryId : string,
+//         path : string, 
+//         name? : string, 
+//         metadata? : any
+// }) {
+//     const { id, path, name, metadata } = params;
+//     if (!existsSync(path)) {
+//         throw new Error(`File ${path} does not exist`);
+//     }            
+//     const stats = statSync(path);
+//     const extension = path.split('.').pop();
+//     if (!extension) {
+//         throw new Error(`File ${path} has no extension`);
+//     }
+//     const createdAt = new Date(stats.birthtimeMs);
+//     const updatedAt = new Date(stats.mtimeMs);
+//     return new DatastoreFile(
+//         id,
+//         path,
+//         name || path.split('/').pop() || '',
+//         type || 'file',
+//         stats.size,
+//         extension,
+//         createdAt,
+//         updatedAt,
+//         metadata || {},
+//     )
+// }
 // }

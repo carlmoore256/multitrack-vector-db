@@ -1,5 +1,6 @@
 import path from "path";
 import { readdirSync, rmdirSync, renameSync, existsSync, mkdirSync } from "fs";
+import mime from "mime";
 
 export function flattenDir(rootDir: string, originalDir?: string)  {
     const files = readdirSync(rootDir, { withFileTypes: true });
@@ -26,4 +27,8 @@ export function checkMakeDir(dir: string) {
     if (!existsSync(dir)) {
         mkdirSync(dir);
     }
+}
+
+export function getMimeType(filename: string) {
+    return mime.getType(filename);
 }

@@ -1,22 +1,28 @@
 import { yesNoPrompt, selectPrompt, inputPrompt, queryInputPrompt, queryBuilderPrompt } from "./cli-promts.js";
 import { CambridgeMTParser, DEFAULT_QUERY_FORUM_THREADS } from "../parsing/CambridgeMTParser.js";
+import { CambridgeMTDownloader } from "../downloading/CambridgeMTDownloader.js";
+import { MultitrackDatastore } from "../datastore/MultitrackDatastore.js";
 import { DatabaseClient } from "../database/DatabaseClient.js";
 import { Debug } from "../utils/Debug.js";
 
 export class DatabaseCLI {
 
     private parser : CambridgeMTParser;
+    // private downloader : CambridgeMTDownloader;
     
     constructor(private dbClient : DatabaseClient) {
         this.parser = new CambridgeMTParser(this.dbClient);
+        // this.downloader = new CambridgeMTDownloader(this.dbClient);
     }
-
     async main() {
-
+        
         if (!this.dbClient.isConnected) {
             await this.dbClient.connect();
         }
-    
+        
+        const datastore = new MultitrackDatastore(this.dbClient);
+        await datastore.validate();
+        
         while (true) {
             const choice = await selectPrompt<string>([
                 {value : 'quit', name : "[Quit]"},
@@ -60,12 +66,25 @@ export class DatabaseCLI {
                     Debug.log("HERE IS THE QUERY: " + query);
                     await this.parser.parseAllForumPosts(query);
                     break;
-                // case 'downloadMultitracks':
-                //     await downloadMultitrackFromDialog(dbClient, "all");
-                //     break;
-                // case 'downloadAllMultitracks':
-                //     await downloadAllMultitracks(dbClient, 10);
-                //     break;
+                case 'downloadMultitracks':
+                    await new CambridgeMTDownloader(this.dbClient, datastore).downloadFromQuery(`
+                        SELECT 
+                            multitrack_recording.id as id,
+                            multitrack_recording.name as name,
+                            multitrack_recording_download.url as url
+                        FROM 
+                            multitrack_recording 
+                        INNER JOIN
+                            multitrack_recording_download
+                        ON
+                            multitrack_recording.id = multitrack_recording_download.recording_id
+                        ORDER BY
+                            multitrack_recording_download.bytes ASC
+                        LIMIT 1`, "multitrack");
+                    break;
+                case 'downloadAllMultitracks':
+                    await new CambridgeMTDownloader(this.dbClient, datastore).downloadAllMultitracks(10);
+                    break;
                 default:
                     console.log("Invalid choice");
                     break;

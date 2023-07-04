@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { createHash } from "crypto";
 import path from "path";
 import { Debug } from "./Debug.js";
+import axios from 'axios';
 
 const CACHE_DIR = "./data/cache/";
 
@@ -20,8 +21,8 @@ export async function checkLoadCache<T>(
         data = readFileSync(filename, encoding);
     } else {
         Debug.log("Fetching from web...");
-        const res = await fetch(url);
-        data = await res.text();
+        const res = await axios.get(url);
+        data = await res.data;
         if (!existsSync(CACHE_DIR)) {
             Debug.log("Creating cache directory...");
             mkdirSync(CACHE_DIR);

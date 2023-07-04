@@ -3,13 +3,14 @@ import DatabaseClient from "../database/DatabaseClient.js";
 import { generateId } from "../utils/utils.js";
 import axios from 'axios'; // or use any other HTTP client
 import path from "path";
-import { createWriteStream, existsSync, mkdirSync, copyFileSync, copyFile, unlinkSync, chmodSync } from 'fs';
+import { createWriteStream, existsSync, mkdirSync, chmodSync } from 'fs';
 import { Debug } from "../utils/Debug.js";
 import { unzipFile } from "../datastore/unzip.js";
 import { STORAGE_ROOT, DOWNLOAD_TEMP_DIR } from "../definitions.js";
 import { unzipAudioFiles } from "../datastore/unzip.js";
 import { getRecordingDestinationPath } from "../parsing/MultitrackRecording.js";
 import { IAudioFile } from "../models/audio-models.js";
+import { checkMakeDir } from "../utils/files.js";
 
 export interface DownloadCallbacks {
     onComplete: (download: IDownloadJob) => void;
@@ -18,8 +19,8 @@ export interface DownloadCallbacks {
 }
 
 export interface IDownloadJob {
+    url: string;
     token: string;
-    resource: IRecordingDownloadableResource;
     downloadPath: string;
     totalBytes: number;
     downloadedBytes: number;
@@ -32,6 +33,15 @@ export interface IDownloadJob {
     onComplete: (download: any) => void;
     onError: (error: string) => void;
     onProgress: (progress: number) => void;
+}
+
+export interface IDownloadQueueParams {
+    url: string;
+    callbacks: DownloadCallbacks;
+    metadata?: any;
+    filename?: string;
+    downloadPath?: string;
+    totalBytes?: number;
 }
 
 // handles the state of the download of multitrack recoding files
@@ -55,6 +65,10 @@ export class DownloadManager {
     public defaultTTL = 5 * 60 * 1000; // 5 minutes
 
     private static watchdog: NodeJS.Timeout | null = null;
+
+    private constructor(private downloadRoot : string = DOWNLOAD_TEMP_DIR) {
+        checkMakeDir(downloadRoot);
+    }
 
     private async startWatchdog() {
         if (!DownloadManager.watchdog) {
@@ -104,7 +118,7 @@ export class DownloadManager {
 
         try {
             this.startWatchdog();
-            const response = await axios.get(download.resource.url, {
+            const response = await axios.get(download.url, {
                 responseType: 'stream'
             });
             const writer = createWriteStream(download.downloadPath);
@@ -161,17 +175,20 @@ export class DownloadManager {
 
     // public void updateBandwidthUsage()
 
-    public addToQueue(resource: IRecordingDownloadableResource, callbacks: DownloadCallbacks, downloadPath? : string): string {
-        downloadPath = downloadPath ?? path.join(DOWNLOAD_TEMP_DIR, resource.filename);
+    public addToQueue(params : IDownloadQueueParams): string {       
+        // downloadPath = downloadPath ?? path.join(this.downloadRoot, resource.filename);
+        let { url, callbacks, filename, downloadPath, totalBytes } = params;
+        filename = filename || generateId();
+        downloadPath = downloadPath ?? path.join(this.downloadRoot, filename);
 
         const token = generateId();
         const error: string[] = [];
         // this.Queue.
         const download: IDownloadJob = ({
+            url,
             token,
-            resource,
             downloadPath,
-            totalBytes: resource.bytes || 0,
+            totalBytes: totalBytes || 0,
             downloadedBytes: 0,
             progress: 0,
             status: "queued",

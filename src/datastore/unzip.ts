@@ -1,8 +1,8 @@
-import { createWriteStream, createReadStream, existsSync, mkdirSync, readdirSync, renameSync, unlinkSync, rmSync } from 'fs';
+import { createWriteStream, createReadStream, existsSync, mkdirSync, readdirSync, renameSync, unlinkSync, rmSync, lstatSync } from 'fs';
 import { STORAGE_ROOT } from '../definitions.js';
 import path from "path";
 
-import { generateHashId } from '../utils/utils.js';
+import { generateHashId, generateId } from '../utils/utils.js';
 
 import { IMultitrackRecording } from '../models/cambridge-models.js';
 import { IDownloadJob } from '../downloading/DownloadManager.js';
@@ -10,6 +10,8 @@ import { IAudioFile } from '../models/audio-models.js';
 import { Debug, LogColor } from "../utils/Debug.js";
 import { createAudioFileInfo, isAudioFile } from '../audio-file.js';
 import { flattenDir, checkMakeDir } from '../utils/files.js';
+import { DatastoreFile } from './DatastoreFile.js';
+import { Datastore } from './Datastore.js';
 
 import decompress from 'decompress';
 
@@ -25,7 +27,7 @@ export async function unzipFile(srcPath: string, destPath: string) : Promise<dec
 
 // unzips all files into a directory
 export async function unzipIntoDirectory(zipFilePath: string, outputDir: string) : Promise<string[] | null> {
-    if (zipFilePath.endsWith('.zip')) {
+    if (!zipFilePath.endsWith('.zip')) {
         throw new Error(`Expected zip file, got ${zipFilePath}`);
     }
     const files = await unzipFile(zipFilePath, outputDir);
@@ -33,8 +35,29 @@ export async function unzipIntoDirectory(zipFilePath: string, outputDir: string)
         return null;
     }
     let paths = files.map(f => f.path);
+    paths = paths.filter(p => {
+        const stats = lstatSync(path.join(outputDir, p));
+        return stats.isFile();
+    })
     return paths;
 }
+
+// export async function unzipIntoDatastore(zipFilePath : string, datastore : Datastore, id : string) : Promise<DatastoreFile[] | null> {
+
+//     // const id = datastore.idGenerator(zipFilePath);
+//     // const outputDir = path.resolve(datastore.storageRoot, id);
+
+//     Debug.log(`Unzipping file: ${zipFilePath} => ${outputDir}`);
+//     let paths = await unzipIntoDirectory(zipFilePath, outputDir);
+
+//     if (!paths) {
+//         Debug.logError(`Error unzipping file: ${zipFilePath}`);
+//         return null
+//     }
+
+//     let originalFilenames = paths.map(p => path.basename(p));
+//     paths = readdirSync(outputDir).filter(p => originalFilenames.includes(path.basename(p)));
+// }
 
 
 // unzips all files into a directory, flattens it, then removes the original zip

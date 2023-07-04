@@ -345,6 +345,14 @@ export class DatabaseClient {
         return res;
     }
 
+    /**
+     * Queries a table with a query object
+     */
+    public async queryTable(tableName: string, queryObject: any) {
+        const table = this.tables[tableName];
+        return await table.query(queryObject);
+    }
+
     public async queryRows(query: string, params?: any[]): Promise<any[] | null> {
         const res = await this.db.query(query, params);
         if (res.rows.length > 0) {

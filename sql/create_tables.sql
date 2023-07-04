@@ -51,18 +51,6 @@ CREATE TABLE IF NOT EXISTS artist_genre (
     FOREIGN KEY(genre_id) REFERENCES genre(id)
 );
 
--- represents a single file associated with a multitrack_recording
-CREATE TABLE IF NOT EXISTS audio_file (
-    id TEXT PRIMARY KEY,
-    uri TEXT NOT NULL,
-    name TEXT NOT NULL,
-    tags TEXT,
-    bytes BIGINT,
-    metadata TEXT
-    -- recording_id TEXT NOT NULL,
-    -- FOREIGN KEY(recording_id) REFERENCES multitrack_recording(id)
-);
-
 
 CREATE TABLE IF NOT EXISTS datastore_file (
     id TEXT PRIMARY KEY,
@@ -71,10 +59,20 @@ CREATE TABLE IF NOT EXISTS datastore_file (
     bytes BIGINT,
     extension TEXT,
     type TEXT,
-    created_at DATETIME,
-    updated_at DATETIME,
+    created_at DATE,
+    updated_at DATE,
     metadata TEXT
 );
+
+-- a junction table connecting an audio file to a recording
+CREATE TABLE IF NOT EXISTS recording_file (
+    recording_id TEXT NOT NULL,
+    file_id TEXT NOT NULL,
+    FOREIGN KEY(recording_id) REFERENCES multitrack_recording
+(id),
+    FOREIGN KEY(file_id) REFERENCES datastore_file(id) ON DELETE CASCADE
+);
+
 
 -- a junction table for a genre assigned to a recording, because it's a many-to-many
 -- relationship, since each recording can have multiple genres
@@ -86,14 +84,7 @@ CREATE TABLE IF NOT EXISTS recording_genre (
     FOREIGN KEY(genre_id) REFERENCES genre(id)
 );
 
--- a junction table connecting an audio file to a recording
-CREATE TABLE IF NOT EXISTS recording_file (
-    recording_id TEXT NOT NULL,
-    file_id TEXT NOT NULL,
-    FOREIGN KEY(recording_id) REFERENCES multitrack_recording
-(id),
-    FOREIGN KEY(file_id) REFERENCES audio_file(id)
-);
+
 
 CREATE TABLE IF NOT EXISTS forum_user (
     id TEXT PRIMARY KEY,
@@ -144,7 +135,7 @@ CREATE TABLE IF NOT EXISTS audio_window (
     normalized_time_end REAL NOT NULL,
     normalized_time_length REAL NOT NULL,
     clip_index INTEGER,
-    FOREIGN KEY(file_id) REFERENCES audio_file
+    FOREIGN KEY(file_id) REFERENCES datastore_file
 (id)
 );
 

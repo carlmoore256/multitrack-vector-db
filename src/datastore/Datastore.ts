@@ -1,17 +1,27 @@
 import DatabaseClient from "../database/DatabaseClient.js";
 import { STORAGE_ROOT } from "../definitions.js";
-import { readdirSync, unlinkSync, rmSync, existsSync, mkdirSync } from "fs";
+import { readdirSync, unlinkSync, rmSync, existsSync, mkdirSync, statSync, copyFileSync, renameSync } from "fs";
 import { yesNoPrompt } from "../cli/cli-promts.js";
-import path from "path";
 import { Debug, LogColor } from "../utils/Debug.js";
 import { IMultitrackRecording } from "../models/cambridge-models.js";
 import { DatastoreFile } from "./DatastoreFile.js";
+import { DatastoreDirectory } from "./DatastoreDirectory.js";
+import { generateHashId } from "../utils/utils.js";
+import { checkMakeDir, getMimeType } from "../utils/files.js";
+import { unzipIntoDirectory } from "./unzip.js";
+import { flattenDir } from "../utils/files.js";
+
+import path from "path";
+
+// export interface IDatastore
 
 // handles storing/recalling any DatastoreFile
 export class Datastore {
 
+    public idGenerator = (data : string) => generateHashId(data, 16);
+
     constructor(
-        private dbClient: DatabaseClient,
+        public dbClient: DatabaseClient,
         public storageRoot: string = STORAGE_ROOT, // directory where the files reside
         private tableName: string = 'datastore_file',
         private id = 'datastore'
@@ -59,8 +69,9 @@ export class Datastore {
     public async validate(): Promise<boolean> {
 
         if (!existsSync(this.storageRoot)) {
-            Debug.logError(`Storage root does not exist: ${this.storageRoot}`);
+            Debug.logError(`Storage root does not exist: ${path.resolve(this.storageRoot)}`);
             const res = await yesNoPrompt(`Datastore root ${this.storageRoot} does not exist. Create directory?`);
+            // console.log(res);
             if (res) {
                 mkdirSync(this.storageRoot);
             } else {
@@ -84,7 +95,7 @@ export class Datastore {
             }
         }
 
-        const allIds = await this.dbClient.queryRows(`SELECT id FROM $1`, [this.tableName]);
+        const allIds = await this.dbClient.queryRows(`SELECT id FROM ${this.tableName}`);
 
         // no ids found, but there are folders
         if (!allIds && folderIds.length > 0) {
@@ -123,9 +134,10 @@ export class Datastore {
         if (notInStorage.length > 0) {
             const res = await yesNoPrompt(`Found ${notInStorage.length} database entries not in folder. Delete?`);
             if (res) {
-                notInStorage.forEach((id: string) => {
-                    this.dbClient.query(`DELETE FROM $1 WHERE id = $2`, [this.tableName, id]);
+                notInStorage.forEach((record: any) => {
+                    this.dbClient.query(`DELETE FROM ${this.tableName} WHERE id = $1`, [record.id]);
                 });
+                // 
                 // recursively run
                 this.validate();
             } else {
@@ -143,10 +155,135 @@ export class Datastore {
     }
 
     public async getDatastoreFileById(id: string) : Promise<DatastoreFile | null> {
-        const query = `SELECT * FROM $1 WHERE id = $2`;
+        const query = `SELECT * FROM ${this.tableName} WHERE id = $1`;
         const values = [this.tableName, id];
         const res = await this.dbClient.queryRows(query, values);
         if (!res) return null;
         return DatastoreFile.fromDatabaseRow(res[0]);
+    }
+
+    
+    // public getPathFromId(id : string) {
+    //     return path.resolve(this.storageRoot, id);
+    // }
+    
+    public getDirectoryFromId(id : string) {
+        return path.resolve(this.storageRoot, id);
+        // return path.dirname(this.getPathFromId(id));
+    }
+
+    // gets a datastore file, but isn't finalized
+    public datastoreFileFromPath(params : {
+        originalPath: string,
+        directoryId: string,
+        id?: string, 
+        name?: string, 
+        metadata?: any
+    }) : DatastoreFile {
+
+        let { originalPath, directoryId, id, name, metadata } = params;
+        if (!existsSync(originalPath)) {
+            throw new Error(`File does not exist: ${originalPath}`);
+        }
+        
+        const filename = path.basename(originalPath);
+        const ext = path.extname(originalPath);
+        id = id || this.idGenerator(originalPath);
+        const newFullPath = path.join(this.storageRoot, directoryId, id + ext);
+        const stats = statSync(originalPath);
+        const createdAt = new Date(stats.birthtimeMs);
+        const updatedAt = new Date(stats.mtimeMs);
+        const type = getMimeType(originalPath) || 'application/octet-stream';
+
+
+        // if file isn't already in the path, move it to there
+        if (!originalPath.includes(this.storageRoot)) {
+            const outputDir = this.getDirectoryFromId(directoryId);
+            Debug.log(`Copying file from ${originalPath} => ${outputDir}`);
+            copyFileSync(originalPath, newFullPath);
+        } else {
+            Debug.log(`File already in datastore, renaming to ${newFullPath}`);
+            renameSync(originalPath, newFullPath);
+        }
+
+        const newPath = newFullPath.replace(this.storageRoot, '');
+
+        return new DatastoreFile(
+            id,
+            newPath,
+            name || filename,
+            type,
+            stats.size,
+            ext,
+            createdAt,
+            updatedAt,
+            metadata || {}
+        );
+    }
+
+
+    /**
+     * Unzips a zip file into a new datastore directory, creating the new entries
+     */
+    public async unzipIntoDatastore(zipFilePath : string, directoryId : string) : Promise<DatastoreFile[] | null> {
+        // if (directoryId == null) {
+        //     // CHANGE ME, use some meaningful contents
+        // }       
+        // directoryId = this.idGenerator(zipFilePath);
+
+        // const dir = directoryId ? path.resolve(this.storageRoot, directoryId) : this.storageRoot;
+        const outputDir = this.getDirectoryFromId(directoryId);
+        checkMakeDir(outputDir);
+        
+        let paths = await unzipIntoDirectory(zipFilePath, outputDir);
+        if (!paths) {
+            Debug.logError(`Error unzipping file: ${zipFilePath}`);
+            return null
+        }
+
+        // const fullDir = path.resolve(this.storageRoot, directoryId);
+        // if ()
+        flattenDir(outputDir);
+        let originalFilenames = paths.map(p => path.basename(p));
+        // make sure that we only return the files that have just been added
+        paths = readdirSync(outputDir).filter(p => originalFilenames.includes(path.basename(p)));
+
+        const datastoreFiles = paths.map(p => {
+            return this.datastoreFileFromPath({
+                originalPath: path.join(outputDir, p),
+                directoryId,
+                id: this.idGenerator(p)
+            });
+        });
+
+        const insertQueries = datastoreFiles.map(f => f.toInsertQuery(this.tableName));
+
+        insertQueries.forEach(q => {
+            Debug.log(`Inserting file: ${q.query}`);
+            this.dbClient.query(q.query, q.values);
+        });
+
+        // add all the files to the database
+        // this.dbClient.insertMany(this.tableName, datastoreFiles.map(f => f.toInsertQuery(this.tableName)));
+
+        Debug.logError(`Removing downloaded file: ${zipFilePath}`);
+        unlinkSync(zipFilePath);
+
+        return datastoreFiles;
+    }
+
+
+    public async addFileToDatastore(params : {
+        originalPath: string,
+        directoryId: string,
+        id?: string,
+        name?: string,
+        metadata?: any
+    }) : Promise<DatastoreFile | null> {
+        const { originalPath, directoryId, id, name, metadata } = params;
+        const file = this.datastoreFileFromPath({ originalPath, directoryId, id, name, metadata });
+        const res = await this.addDatastoreFile(file);
+        if (!res) return null;
+        return file;
     }
 }
