@@ -1,5 +1,5 @@
 import path from "path";
-import { readdirSync, rmdirSync, renameSync, existsSync, mkdirSync } from "fs";
+import { readdirSync, rmdirSync, renameSync, existsSync, mkdirSync, chmodSync, statSync } from "fs";
 import mime from "mime";
 
 export function flattenDir(rootDir: string, originalDir?: string)  {
@@ -23,6 +23,24 @@ export function flattenDir(rootDir: string, originalDir?: string)  {
     }
 }
 
+export function getAllFilesInDir(dir: string): string[] {
+    let results: string[] = [];
+    const list = readdirSync(dir);
+    list.forEach((file) => {
+        const filePath = path.join(dir, file);
+        const stat = statSync(filePath);
+        if (stat && stat.isDirectory()) {
+            /* Recurse into a subdirectory */
+            results = results.concat(getAllFilesInDir(filePath));
+        } else {
+            /* Is a file */
+            results.push(filePath);
+        }
+    });
+
+    return results;
+}
+
 export function checkMakeDir(dir: string) {
     if (!existsSync(dir)) {
         mkdirSync(dir);
@@ -31,4 +49,8 @@ export function checkMakeDir(dir: string) {
 
 export function getMimeType(filename: string) {
     return mime.getType(filename);
+}
+
+export function modifyFilePermissions(filePath : string, permissions : any = 0o644) {
+    const res = chmodSync(filePath, permissions);
 }

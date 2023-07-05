@@ -9,7 +9,7 @@ import { DatastoreDirectory } from "./DatastoreDirectory.js";
 import { generateHashId } from "../utils/utils.js";
 import { checkMakeDir, getMimeType } from "../utils/files.js";
 import { unzipIntoDirectory } from "./unzip.js";
-import { flattenDir } from "../utils/files.js";
+import { flattenDir, getAllFilesInDir } from "../utils/files.js";
 
 import path from "path";
 
@@ -23,7 +23,8 @@ export class Datastore {
     constructor(
         public dbClient: DatabaseClient,
         public storageRoot: string = STORAGE_ROOT, // directory where the files reside
-        private tableName: string = 'datastore_file',
+        private fileTableName: string = 'datastore_file',
+        private tableIdColumn: string = 'id',
         private id = 'datastore'
     ) {
         if (!dbClient.isConnected) {
@@ -56,13 +57,17 @@ export class Datastore {
 
         this.wipeStorage();
         
-        const queryRes = await this.dbClient.query(`DELETE FROM $1`, [this.tableName]);
+        const queryRes = await this.dbClient.query(`DELETE FROM $1`, [this.fileTableName]);
         if (queryRes.rowCount === 0) {
-            Debug.logError(`No files deleted from ${this.tableName}!`);
+            Debug.logError(`No files deleted from ${this.fileTableName}!`);
             return false;
         }
-        Debug.log(`Deleted ${queryRes.rowCount} rows from ${this.tableName}`, LogColor.Green, this.id);
+        Debug.log(`Deleted ${queryRes.rowCount} rows from ${this.fileTableName}`, LogColor.Green, this.id);
         return true;
+    }
+
+    public fileToId(filePath: string) {
+        return path.basename(filePath).split('.')[0];
     }
 
     // makes sure all of the multitracks are accounted for
@@ -79,67 +84,46 @@ export class Datastore {
             }
         }
 
-        const topLevelFiles = readdirSync(this.storageRoot, { withFileTypes: true });
-        const folderIds = topLevelFiles.filter(f => f.isDirectory()).map(f => f.name);
-        const invalid = topLevelFiles.filter(f => !f.isDirectory());
-        const invalidFiles = invalid.map(f => path.resolve(this.storageRoot, f.name));
-
-        if (invalidFiles.length > 0) {
-            const res = await yesNoPrompt(`Found ${invalidFiles.length} invalid files. Delete them?`);
-            if (res) {
-                invalidFiles.forEach(f => {
-                    unlinkSync(f);
-                });
-            } else {
-                return false;
-            }
-        }
-
-        const allIds = await this.dbClient.queryRows(`SELECT id FROM ${this.tableName}`);
-
-        // no ids found, but there are folders
-        if (!allIds && folderIds.length > 0) {
-            const res = await yesNoPrompt(
-                `Found ${folderIds.length} folders in the root directory, but no valid audio files. 
-                Wipe storage root at ${this.storageRoot}?`
-            );
-            if (res) {
-                this.wipeStorage();
-            }
-            return false;
-        }
+        const allFiles = getAllFilesInDir(this.storageRoot);
+        const allFileIds = allFiles.map(this.fileToId);
+        const allFileIdsMap = allFiles.map(f => ({ id: this.fileToId(f), path: f }));
+        let allDatabaseIds = await this.dbClient.queryRows(`SELECT ${this.tableIdColumn} FROM ${this.fileTableName}`);
+        if (!allDatabaseIds) allDatabaseIds = [];
+        allDatabaseIds = allDatabaseIds.map((row: any) => row[this.tableIdColumn]);
 
         // -- SPECIAL CASE -- nothing found at all, but datastore is valid
-        if (!allIds && folderIds.length === 0) {
+        if (!allDatabaseIds && allFileIds.length === 0) {
             Debug.log(`No files or database entries found. Datastore ready for new files`);
             return true;
         }
 
-        const notInDatabase = folderIds.filter(id => !(allIds as any).includes(id));
-        const notInStorage = (allIds as any).filter((id: any) => !folderIds.includes(id));
+        const notInDatabase = allFileIds.filter(id => !(allDatabaseIds as any).includes(id));
+        const notInStorage = (allDatabaseIds as any).filter((id: any) => !allFileIds.includes(id));
 
         if (notInDatabase.length > 0) {
-            const res = await yesNoPrompt(`Found ${notInDatabase.length} folders not in database. Delete?`);
+            Debug.logObject(allDatabaseIds);
+            const res = await yesNoPrompt(`Found ${notInDatabase.length} files not in database. Delete files?`);
             if (res) {
                 notInDatabase.forEach(id => {
-                    rmSync(path.resolve(this.storageRoot, id), { recursive: true });
+                    rmSync(path.resolve(allFileIdsMap.find(f => f.id === id)!.path), { recursive: true });
+                    // rmSync(path.resolve(this.storageRoot, id), { recursive: true });
                 });
                 // recursively run
-                this.validate();
+                // this.validate();
             } else {
                 return false;
             }
         }
 
         if (notInStorage.length > 0) {
-            const res = await yesNoPrompt(`Found ${notInStorage.length} database entries not in folder. Delete?`);
+            const res = await yesNoPrompt(`Found ${notInStorage.length} database entries without files. Delete from database?`);
             if (res) {
                 notInStorage.forEach((record: any) => {
-                    this.dbClient.query(`DELETE FROM ${this.tableName} WHERE id = $1`, [record.id]);
+                    this.dbClient.query(`DELETE FROM ${this.fileTableName} WHERE ${this.tableIdColumn} = $1`, [record.id]);
                 });
                 // 
                 // recursively run
-                this.validate();
+                // this.validate();
             } else {
                 return false;
             }
@@ -148,15 +132,15 @@ export class Datastore {
     }
 
     public async addDatastoreFile(file: DatastoreFile) : Promise<boolean> {
-        const { query, values } = file.toInsertQuery(this.tableName);
+        const { query, values } = file.toInsertQuery(this.fileTableName);
         const res = await this.dbClient.queryRows(query, values);
         if (!res) return false;
         return true;
     }
 
     public async getDatastoreFileById(id: string) : Promise<DatastoreFile | null> {
-        const query = `SELECT * FROM ${this.tableName} WHERE id = $1`;
-        const values = [this.tableName, id];
+        const query = `SELECT * FROM ${this.fileTableName} WHERE ${this.tableIdColumn} = $1`;
+        const values = [this.fileTableName, id];
         const res = await this.dbClient.queryRows(query, values);
         if (!res) return null;
         return DatastoreFile.fromDatabaseRow(res[0]);
@@ -248,19 +232,26 @@ export class Datastore {
         // make sure that we only return the files that have just been added
         paths = readdirSync(outputDir).filter(p => originalFilenames.includes(path.basename(p)));
 
+        
         const datastoreFiles = paths.map(p => {
             return this.datastoreFileFromPath({
                 originalPath: path.join(outputDir, p),
                 directoryId,
-                id: this.idGenerator(p)
+                id: this.idGenerator(directoryId + p) // earlier we were having a problem where "kick_1.wav" was conflicting with existing other records
+                // with the same hashed id, so we will add the directoryId to the hash to avoid collision
             });
         });
 
-        const insertQueries = datastoreFiles.map(f => f.toInsertQuery(this.tableName));
+        const insertQueries = datastoreFiles.map(f => f.toInsertQuery(this.fileTableName));
 
         insertQueries.forEach(q => {
             Debug.log(`Inserting file: ${q.query}`);
-            this.dbClient.query(q.query, q.values);
+            try {
+                this.dbClient.query(q.query, q.values);
+            } catch (e) {
+                Debug.logError(`Error inserting file: ${q.query}`);
+                return null;
+            }
         });
 
         // add all the files to the database
@@ -287,3 +278,32 @@ export class Datastore {
         return file;
     }
 }
+
+
+
+// const folderIds = allFiles.filter(f => f.isDirectory()).map(f => f.name);
+// const invalid = allFiles.filter(f => !f.isDirectory());
+// const invalidFiles = invalid.map(f => path.resolve(this.storageRoot, f.name));
+
+// if (invalidFiles.length > 0) {
+//     const res = await yesNoPrompt(`Found ${invalidFiles.length} invalid files. Delete them?`);
+//     if (res) {
+//         invalidFiles.forEach(f => {
+//             unlinkSync(f);
+//         });
+//     } else {
+//         return false;
+//     }
+// }
+
+// no ids found, but there are folders
+// if (!allDatabaseIds && folderIds.length > 0) {
+//     const res = await yesNoPrompt(
+//         `Found ${folderIds.length} folders in the root directory, but no valid audio files. 
+//         Wipe storage root at ${this.storageRoot}?`
+//     );
+//     if (res) {
+//         this.wipeStorage();
+//     }
+//     return false;
+// }

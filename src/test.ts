@@ -15,17 +15,21 @@
 //     `E:/cambridge-mt-scraper/data/storage/75e032fe-7f8b-4a65-8d43-cb291fcb9c47`,
 //     true, true, true);
 
-import { unzipAudioFiles } from "./datastore/unzip.js";
-import Database from "./database/DatabaseClient.js";
-import { flattenDir } from "./utils/files.js";
-import { unzipIntoDirectory } from "./datastore/unzip.js";
-import { MultitrackDatastore } from "./datastore/MultitrackDatastore.js";
+// import { unzipAudioFiles } from "./datastore/unzip.js";
+// import Database from "./database/DatabaseClient.js";
+// import { flattenDir } from "./utils/files.js";
+// import { unzipIntoDirectory } from "./datastore/unzip.js";
+// import { MultitrackDatastore } from "./datastore/MultitrackDatastore.js";
 
-const dbClient = new Database();
-await dbClient.connect();
+// const dbClient = new Database();
+// await dbClient.connect();
 
-const datastore = new MultitrackDatastore(dbClient);
-const res = await datastore.validate();
-console.log(res);
+// const datastore = new MultitrackDatastore(dbClient);
+// const res = await datastore.validate();
+// console.log(res);
+
+
+import test from "./tests/testCLIProgress.js";
+test();
 
 

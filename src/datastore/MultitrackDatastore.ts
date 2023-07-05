@@ -28,7 +28,6 @@ export class MultitrackDatastore extends Datastore {
             return null;
         }
         datastoreFiles.forEach(async f => {
-            console.log("EERRORORORRAS:KDLASLKJDSLKAJL")
             await this.dbClient.query(`INSERT INTO recording_file (recording_id, file_id) VALUES ($1, $2)`, [recordingId, f.id]);
         });
         return datastoreFiles;

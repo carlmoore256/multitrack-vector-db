@@ -1,5 +1,6 @@
 import { IMultitrackRecording, IRecordingDownloadableResource, RecordingDownloadableResourceType } from "../models/cambridge-models.js";
-import { DownloadManager, IDownloadJob, DownloadCallbacks } from "./DownloadManager.js";
+import { DownloadManager } from "./DownloadManager.js";
+import { DownloadCallbacks, DownloadJob } from "./DownloadJob.js";
 import { getRecordingDestinationPath } from "../parsing/MultitrackRecording.js";
 import { MultitrackDatastore } from "../datastore/MultitrackDatastore.js";
 import { generateId } from "../utils/utils.js";
@@ -78,7 +79,7 @@ export class CambridgeMTDownloader {
                 url: resource.url,
                 filename: resource.filename,
                 callbacks : {
-                    onComplete: async (job: IDownloadJob) => {
+                    onComplete: async (job: DownloadJob) => {
                         await this.handleDownloadComplete(
                             job.downloadPath,
                             recording.id,
@@ -101,9 +102,7 @@ export class CambridgeMTDownloader {
     }
 
 
-    public async downloadAllMultitracks(
-        limit: number = 10,
-    ) {
+    public async downloadAllMultitracks(limit: number=10, onAllComplete?: () => void) {
 
         let query = readFileSync('sql/queries/smallest_not_downloaded.sql', 'utf-8');
         query += ` LIMIT ${limit}`;
@@ -125,27 +124,26 @@ export class CambridgeMTDownloader {
             return;
         }
 
+        let index = 0;
         for (const row of rows) {
+            const isLast = index === rows.length - 1;
             Debug.log(`Downloading ${row.name} | ${row.total_megabytes} MB`);
             // await this.downloadMultitrackRecording(recording, "multitrack");
-            let lastProgress = 0;
             const callbacks: DownloadCallbacks = {
-                onComplete: async (job: IDownloadJob) => {
+                onComplete: async (job: DownloadJob) => {
                     await this.handleDownloadComplete(
                         job.downloadPath, 
                         row.id, 
                         row.type
                     );
+                    if (isLast) {
+                        onAllComplete?.();
+                    }
                 },
+                onProgress: (job) => {},
                 onError: (e) => {
                     console.error(`Error downloading file: ${e}`);
                 },
-                onProgress: (progress) => {
-                    if (progress - lastProgress > 0.1) {
-                        console.log(`Download progress: ${progress}`);
-                        lastProgress = progress;
-                    }
-                }
             }
 
             if (!row.url) continue;
@@ -157,38 +155,7 @@ export class CambridgeMTDownloader {
                 totalBytes: row.bytes,
                 filename: row.filename,
             });
-        }
-    }
-
-    public async downloadMultitrackFromDialog(
-        type: RecordingDownloadableResourceType | "all" = "multitrack"
-    ) {
-        const query = await this.dbClient.queryDialog(`
-            SELECT 
-                multitrack_recording.id as id,
-                multitrack_recording.name as recording_name,
-                multitrack_recording_download.url as url,
-                multitrack_recording_download.bytes as total_bytes
-            FROM 
-                multitrack_recording
-            INNER JOIN
-                audio_file
-            ON
-                multitrack_recording.id = audio_file.recording_id
-            INNER JOIN
-                multitrack_recording_download
-            ON
-                multitrack_recording.id = multitrack_recording_download.recording_id
-            ORDER BY
-                multitrack_recording_download.bytes DESC
-            LIMIT 10
-        `);
-        if (!query || query.length === 0) {
-            console.log('No recordings found');
-            return;
-        }
-        for (const recording of query) {
-            await this.downloadMultitrackRecording(recording, type);
+            index++;
         }
     }
 
@@ -244,21 +211,18 @@ export class CambridgeMTDownloader {
 
             let lastProgress = 0;
             const callbacks: DownloadCallbacks = {
-                onComplete: async (job: IDownloadJob) => {
+                onComplete: async (job: DownloadJob) => {
                     await this.handleDownloadComplete(
                         job.downloadPath, 
                         recording.id, 
                         resource.type);
                 },
+                onProgress: (job) => {
+
+                },
                 onError: (e) => {
                     console.error(`Error downloading file: ${e}`);
                 },
-                onProgress: (progress) => {
-                    if (progress - lastProgress > 0.1) {
-                        console.log(`Download progress: ${progress}`);
-                        lastProgress = progress;
-                    }
-                }
             }
 
             if (!resource.url) continue;
@@ -305,6 +269,43 @@ export async function generalQuery(
     }
     Debug.log("GOT QUERY", query);
 }
+
+
+
+
+// public async downloadMultitrackFromDialog(
+//     type: RecordingDownloadableResourceType | "all" = "multitrack"
+// ) {
+//     const query = await this.dbClient.queryDialog(`
+//         SELECT 
+//             multitrack_recording.id as id,
+//             multitrack_recording.name as recording_name,
+//             multitrack_recording_download.url as url,
+//             multitrack_recording_download.bytes as total_bytes
+//         FROM 
+//             multitrack_recording
+//         INNER JOIN
+//             audio_file
+//         ON
+//             multitrack_recording.id = audio_file.recording_id
+//         INNER JOIN
+//             multitrack_recording_download
+//         ON
+//             multitrack_recording.id = multitrack_recording_download.recording_id
+//         ORDER BY
+//             multitrack_recording_download.bytes DESC
+//         LIMIT 10
+//     `);
+//     if (!query || query.length === 0) {
+//         console.log('No recordings found');
+//         return;
+//     }
+//     for (const recording of query) {
+//         await this.downloadMultitrackRecording(recording, type);
+//     }
+// }
+
+
 
 
 // if (job.resource.type === "multitrack") {

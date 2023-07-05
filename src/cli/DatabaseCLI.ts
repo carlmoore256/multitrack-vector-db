@@ -4,6 +4,8 @@ import { CambridgeMTDownloader } from "../downloading/CambridgeMTDownloader.js";
 import { MultitrackDatastore } from "../datastore/MultitrackDatastore.js";
 import { DatabaseClient } from "../database/DatabaseClient.js";
 import { Debug } from "../utils/Debug.js";
+import { DownloadStatusUI } from "./DownloadStatusUI.js";
+import { DownloadManager } from "../downloading/DownloadManager.js";
 
 export class DatabaseCLI {
 
@@ -21,7 +23,11 @@ export class DatabaseCLI {
         }
         
         const datastore = new MultitrackDatastore(this.dbClient);
-        await datastore.validate();
+        const isValid = await datastore.validate();
+        // if (!isValid) {
+        //     Debug.log("Database is not valid, quitting...");
+        //     return;
+        // }    
         
         while (true) {
             const choice = await selectPrompt<string>([
@@ -83,7 +89,10 @@ export class DatabaseCLI {
                         LIMIT 1`, "multitrack");
                     break;
                 case 'downloadAllMultitracks':
-                    await new CambridgeMTDownloader(this.dbClient, datastore).downloadAllMultitracks(10);
+                    new DownloadStatusUI(DownloadManager.Instance);
+                    await new CambridgeMTDownloader(this.dbClient, datastore).downloadAllMultitracks(
+                        10, () => process.exit(0)
+                    );
                     break;
                 default:
                     console.log("Invalid choice");
