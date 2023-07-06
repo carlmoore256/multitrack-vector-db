@@ -242,16 +242,12 @@ export class Datastore {
             });
         });
 
-        const insertQueries = datastoreFiles.map(f => f.toInsertQuery(this.fileTableName));
+        const insertQueries = datastoreFiles.map(f => f.toUpsertQuery(this.fileTableName, this.tableIdColumn));
 
         insertQueries.forEach(q => {
-            Debug.log(`Inserting file: ${q.query}`);
-            try {
-                this.dbClient.query(q.query, q.values);
-            } catch (e) {
-                Debug.logError(`Error inserting file: ${q.query}`);
-                return null;
-            }
+            // Debug.log(`Inserting file: ${q.query}`);
+            // console.log(`Inserting file: ${q.query}`);
+            this.dbClient.query(q.query, q.values);
         });
 
         // add all the files to the database

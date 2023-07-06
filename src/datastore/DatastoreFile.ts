@@ -59,6 +59,19 @@ export class DatastoreFile implements IQueryable {
         return { query, values };
     }
 
+    public toUpsertQuery(tableName: string, idField: string) : { query: string, values: any[] } {
+        const { keys, values } = this.toDatabaseKVP();
+        const placeholders = keys.map((_, i) => `$${i + 1}`); // this will generate ['$1', '$2', '$3', ...]
+        const onConflict = keys.map((key, i) => `${key} = EXCLUDED.${key}`);
+        const query = `
+            INSERT INTO ${tableName} (${keys.join(', ')}) 
+            VALUES (${placeholders.join(', ')}) 
+            ON CONFLICT (${idField}) 
+            DO UPDATE SET ${onConflict.join(', ')}
+        `;
+        return { query, values };
+    }    
+
     public toSelectQuery(tableName: string, idField: string) : { query: string, values: any[] } {
         const { keys, values } = this.toDatabaseKVP();
         const query = `SELECT ${keys.join(', ')} FROM ${tableName} WHERE ${idField}=$1`;

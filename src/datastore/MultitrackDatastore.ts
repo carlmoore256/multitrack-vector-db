@@ -28,7 +28,7 @@ export class MultitrackDatastore extends Datastore {
             return null;
         }
         datastoreFiles.forEach(async f => {
-            await this.dbClient.query(`INSERT INTO recording_file (recording_id, file_id) VALUES ($1, $2)`, [recordingId, f.id]);
+            await this.dbClient.query(`INSERT INTO recording_file (recording_id, file_id) VALUES ($1, $2) ON CONFLICT (file_id) DO NOTHING`, [recordingId, f.id]);
         });
         return datastoreFiles;
     }
@@ -41,7 +41,7 @@ export class MultitrackDatastore extends Datastore {
         if (!datastoreFile) {
             return null;
         }
-        await this.dbClient.query(`INSERT INTO recording_file (recording_id, file_id) VALUES ($1, $2)`, [recordingId, datastoreFile.id]);
+        await this.dbClient.query(`INSERT INTO recording_file (recording_id, file_id) VALUES ($1, $2) ON CONFLICT (file_id) DO NOTHING`, [recordingId, datastoreFile.id]);
         return datastoreFile;
     }
 

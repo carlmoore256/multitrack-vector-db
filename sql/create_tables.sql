@@ -66,8 +66,8 @@ CREATE TABLE IF NOT EXISTS datastore_file (
 
 -- a junction table connecting an audio file to a recording
 CREATE TABLE IF NOT EXISTS recording_file (
+    file_id TEXT PRIMARY KEY,
     recording_id TEXT NOT NULL,
-    file_id TEXT NOT NULL,
     FOREIGN KEY(recording_id) REFERENCES multitrack_recording
 (id),
     FOREIGN KEY(file_id) REFERENCES datastore_file(id) ON DELETE CASCADE

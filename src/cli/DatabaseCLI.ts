@@ -90,9 +90,7 @@ export class DatabaseCLI {
                     break;
                 case 'downloadAllMultitracks':
                     new DownloadStatusUI(DownloadManager.Instance);
-                    await new CambridgeMTDownloader(this.dbClient, datastore).downloadAllMultitracks(
-                        10, () => process.exit(0)
-                    );
+                    await new CambridgeMTDownloader(this.dbClient, datastore).downloadAllMultitracks(10);
                     break;
                 default:
                     console.log("Invalid choice");
