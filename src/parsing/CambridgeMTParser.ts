@@ -119,17 +119,12 @@ export class CambridgeMTParser {
             await scraper.load();
     
             const { posts, users, attachments } = await crawlForumThreads(scraper);
-    
-            Debug.log(`Found ${posts.length} posts | ${users.length} users | ${attachments.length} attachments`);
-    
-            Debug.log(`Inserting ${users.length} users into forum_user...`, LogColor.Green);        
-            await this.dbClient.upsertMany('forum_user', users);
             
-            Debug.log(`Inserting ${users.length} Forum Posts into forum_post...`, LogColor.Yellow);
+            await this.dbClient.upsertMany('forum_user', users);
             await this.dbClient.upsertMany('forum_post', posts);
-    
-            Debug.log(`Inserting ${attachments.length} attachments into multitrack_recording_download...`, LogColor.Blue);
             await this.dbClient.upsertMany('multitrack_recording_download', attachments);
+    
+            Debug.log(`[INSERTED] ${posts.length} posts | ${users.length} users | ${attachments.length} attachments`, LogColor.Green);
     
             pbar.update();
         }

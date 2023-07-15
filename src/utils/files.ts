@@ -1,16 +1,24 @@
 import path from "path";
-import { readdirSync, rmdirSync, renameSync, existsSync, mkdirSync, chmodSync, statSync } from "fs";
+import {
+    readdirSync,
+    rmdirSync,
+    renameSync,
+    existsSync,
+    mkdirSync,
+    chmodSync,
+    statSync,
+} from "fs";
 import mime from "mime";
 
-export function flattenDir(rootDir: string, originalDir?: string)  {
+export function flattenDir(rootDir: string, originalDir?: string) {
     const files = readdirSync(rootDir, { withFileTypes: true });
     if (files.length === 0) {
         return [];
     }
-    for(const f of files) {
+    for (const f of files) {
         const res = path.resolve(rootDir, f.name);
         if (f.isDirectory()) {
-            flattenDir(res, originalDir || rootDir); // Recursively call flattenDir for directories            
+            flattenDir(res, originalDir || rootDir); // Recursively call flattenDir for directories
             if (readdirSync(res).length === 0) {
                 rmdirSync(res); // Delete empty directories
             }
@@ -51,6 +59,14 @@ export function getMimeType(filename: string) {
     return mime.getType(filename);
 }
 
-export function modifyFilePermissions(filePath : string, permissions : any = 0o644) {
+export function modifyFilePermissions(
+    filePath: string,
+    permissions: any = 0o644
+) {
     const res = chmodSync(filePath, permissions);
+}
+
+export function isSubPath(basePath : string, testPath : string) {
+    const relative = path.relative(basePath, testPath);
+    return !relative.startsWith("..") && !path.isAbsolute(relative);
 }
