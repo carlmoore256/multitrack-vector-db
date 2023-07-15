@@ -117,6 +117,7 @@ CREATE TABLE IF NOT EXISTS forum_post (
     username TEXT, -- just have both for ease of use when querying chats
     date TEXT,
     content TEXT,
+    content_vector vector(1536),
     attachment_id TEXT,
     FOREIGN KEY(thread_id) REFERENCES forum_thread(id),
     FOREIGN KEY(author_id) REFERENCES forum_user(id)
@@ -135,6 +136,7 @@ CREATE TABLE IF NOT EXISTS audio_window (
     normalized_time_end REAL NOT NULL,
     normalized_time_length REAL NOT NULL,
     clip_index INTEGER,
+    content_vector vector(420), -- use a tokenizer like beats to get this - also, change the size
     FOREIGN KEY(file_id) REFERENCES datastore_file
 (id)
 );

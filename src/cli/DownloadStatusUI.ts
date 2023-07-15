@@ -17,8 +17,6 @@ const DEFAULT_BAR_OPTIONS : ProgressBarOptions = {
 export class DownloadStatusUI {
     private downloadManager: DownloadManager;
     private multibar : MultiBar;
-    // private progressOptions = { width: 40, total: 100, complete: '=', incomplete: ' ' };
-    // private bars: { [key: string]: ProgressBar } = {};
   
     constructor(downloadManager: DownloadManager) {
       this.downloadManager = downloadManager;

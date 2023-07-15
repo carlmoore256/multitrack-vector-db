@@ -46,7 +46,7 @@ export class DownloadManager {
     public onJobProgressObservers : JobObserver[] = [];
     public onJobCompleteObservers : JobObserver[] = [];
 
-    public maxConcurrent = 2;
+    public maxConcurrent = 3;
 
     public defaultTTL = 5 * 60 * 1000; // 5 minutes
 
