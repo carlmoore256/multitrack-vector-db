@@ -9,7 +9,9 @@
     "parse": "node out/index.js",
     "cli": "node out/index.js",
     "test": "node out/test.js",
-    "postgres": "E:/PostgreSQL/bin/psql.exe -U postgres"
+    "postgres": "E:/PostgreSQL/bin/psql.exe -U postgres",
+    "instruments": "node out/database/createInstruments.js",
+    "vectorize": "node out/database/vectorize.js"
   },
   "author": "Carl Moore",
   "license": "ISC",
@@ -32,6 +34,7 @@
     "cli-progress": "^3.12.0",
     "decompress": "^4.2.1",
     "dotenv": "^16.3.1",
+    "gpt-tokenizer": "^2.1.1",
     "inquirer": "^9.2.7",
     "jsdom": "^22.1.0",
     "kysely": "^0.25.0",

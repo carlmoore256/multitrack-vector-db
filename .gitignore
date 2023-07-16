@@ -7,3 +7,4 @@ temp/
 .env
 out/
 data/
+query-sandbox/

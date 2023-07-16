@@ -65,7 +65,7 @@ export class Debug {
   }
 
 
-  static logError(error: Error | any, message: string = "") {
+  static error(error: Error | any, message: string = "") {
     const coloredMessage = this.colorMessage(message, LogColor.Red);
 
     this.output(coloredMessage + "\n" + error);

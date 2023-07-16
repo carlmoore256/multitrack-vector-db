@@ -18,8 +18,13 @@ export class CambridgeMTForumThreadScraper extends CachedWebPage {
         return this.page.querySelector("#posts") as HTMLElement;
     }
 
-    public parse(): IForumPostData {
-        return parseForumThreadPosts(this.postsElement, this.thread);
+    public parse(): IForumPostData | null {
+        try {
+            return parseForumThreadPosts(this.postsElement, this.thread);
+        } catch (e) {
+            Debug.error("Error parsing forum thread page");
+            return null;
+        }
     }
 
     public getMaxPages(): number | null {
@@ -77,6 +82,7 @@ export function consolidateAttachments(attachments: IRecordingDownloadableResour
     return Array.from(consolidatedAttachments.values());
 }
 
+
 export async function crawlForumThreads(scraper: CambridgeMTForumThreadScraper): Promise<IForumPostData> {
     const allData: IForumPostData = {
         posts: [],
@@ -85,7 +91,12 @@ export async function crawlForumThreads(scraper: CambridgeMTForumThreadScraper):
     };
     await scraper.load();
     while (scraper) {
-        const { posts, users, attachments } = scraper.parse();
+        const parsed = scraper.parse();
+        if (!parsed) {
+            Debug.error("Error parsing forum thread page");
+            return allData;
+        }
+        const { posts, users, attachments } = parsed;
 
         allData.posts.push(...posts);
         allData.users.push(...users);

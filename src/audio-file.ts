@@ -50,7 +50,7 @@ export function isAudioFile(filepath: string) : boolean {
 
 export function createAudioFileInfo(filepath: string, id? : string) : IAudioFile | null {
     if (!isAudioFile(filepath)) {
-        Debug.logError(`File type ${filepath} is not supported`);
+        Debug.error(`File type ${filepath} is not supported`);
         return null;
     }
     const stats = statSync(filepath);

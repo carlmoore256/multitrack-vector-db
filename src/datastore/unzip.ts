@@ -12,7 +12,7 @@ export async function unzipFile(srcPath: string, destPath: string) : Promise<dec
         const res = await decompress(srcPath, destPath);
         return res;
     } catch (err) {
-        Debug.logError(`Error unzipping file: ${err}`);
+        Debug.error(`Error unzipping file: ${err}`);
         return null;
     }
 }
@@ -59,7 +59,7 @@ export async function unzipAudioFiles(zipFilePath: string, outputDir: string) : 
     let paths = await unzipIntoDirectory(zipFilePath, outputDir);
 
     if (!paths) {
-        Debug.logError(`Error unzipping file: ${zipFilePath}`);
+        Debug.error(`Error unzipping file: ${zipFilePath}`);
         return null
     }
 
@@ -77,7 +77,7 @@ export async function unzipAudioFiles(zipFilePath: string, outputDir: string) : 
         if (audioFile) audioFiles.push(audioFile);
     }
 
-    Debug.logError(`Removing downloaded file: ${zipFilePath}`);
+    Debug.error(`Removing downloaded file: ${zipFilePath}`);
     unlinkSync(zipFilePath);
 
     return audioFiles;

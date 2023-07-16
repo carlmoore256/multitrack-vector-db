@@ -59,7 +59,7 @@ export class Datastore {
         
         const queryRes = await this.dbClient.query(`DELETE FROM $1`, [this.fileTableName]);
         if (queryRes.rowCount === 0) {
-            Debug.logError(`No files deleted from ${this.fileTableName}!`);
+            Debug.error(`No files deleted from ${this.fileTableName}!`);
             return false;
         }
         Debug.log(`Deleted ${queryRes.rowCount} rows from ${this.fileTableName}`, LogColor.Green, this.id);
@@ -74,7 +74,7 @@ export class Datastore {
     public async validate(): Promise<boolean> {
 
         if (!existsSync(this.storageRoot)) {
-            Debug.logError(`Storage root does not exist: ${path.resolve(this.storageRoot)}`);
+            Debug.error(`Storage root does not exist: ${path.resolve(this.storageRoot)}`);
             const res = await yesNoPrompt(`Datastore root ${this.storageRoot} does not exist. Create directory?`);
             if (res) {
                 mkdirSync(this.storageRoot);
@@ -203,7 +203,7 @@ export class Datastore {
         
         let paths = await unzipIntoDirectory(zipFilePath, outputDir);
         if (!paths) {
-            Debug.logError(`Error unzipping file: ${zipFilePath}`);
+            Debug.error(`Error unzipping file: ${zipFilePath}`);
             return null
         }
 
@@ -230,7 +230,7 @@ export class Datastore {
         // add all the files to the database
         // this.dbClient.insertMany(this.tableName, datastoreFiles.map(f => f.toInsertQuery(this.tableName)));
 
-        Debug.logError(`Removing downloaded file: ${zipFilePath}`);
+        Debug.error(`Removing downloaded file: ${zipFilePath}`);
         unlinkSync(zipFilePath);
 
         return datastoreFiles;

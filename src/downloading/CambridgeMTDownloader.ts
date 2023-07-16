@@ -199,7 +199,7 @@ export class CambridgeMTDownloader {
         }[];
 
         if (!results) {
-            Debug.logError("No results found");
+            Debug.error("No results found");
             return;
         }
 

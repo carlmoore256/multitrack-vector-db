@@ -108,7 +108,7 @@ export class DownloadJob {
                 // think about having an array of places that you can 
                 // log to, so that they can selectively be displayed by
                 // cli interface
-                Debug.logError(`Download ${this.token} timed out`);
+                Debug.error(`Download ${this.token} timed out`);
                 this.cancel();
             }
         }

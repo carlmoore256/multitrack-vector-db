@@ -15,6 +15,9 @@ import { DatabaseClient } from "../database/DatabaseClient.js";
 import { Debug } from "../utils/Debug.js";
 import { DownloadStatusUI } from "./DownloadStatusUI.js";
 import { DownloadManager } from "../downloading/DownloadManager.js";
+import { vectorizeAll } from "../database/vectorize.js";
+import dotenv from "dotenv";
+dotenv.config();
 
 export class DatabaseCLI {
     private parser: CambridgeMTParser;
@@ -30,7 +33,10 @@ export class DatabaseCLI {
         }
 
         const datastore = new MultitrackDatastore(this.dbClient);
-        const isValid = await datastore.validate();
+        
+        if (process.env.VALIDATE_DATASTORE === "true") {
+            const isValid = await datastore.validate();
+        }
         // if (!isValid) {
         //     Debug.log("Database is not valid, quitting...");
         //     return;
@@ -67,6 +73,10 @@ export class DatabaseCLI {
                         value: "parseDownloadedForumPosts",
                         name: "6. Download and parse any forum posts related to existing multitracks in the datastore",
                     },
+                    {
+                        value: "vectorizeForumPosts",
+                        name: "7. Vectorize all forum posts",
+                    }
                 ],
                 "Select an option"
             );
@@ -160,6 +170,9 @@ export class DatabaseCLI {
                         }
                     );
                     await this.parser.parseAllForumPosts(query);
+                    break;
+                case "vectorizeForumPosts":
+                    await vectorizeAll(this.dbClient, 1000, (1000 * 60) / 3);
                     break;
                 default:
                     console.log("Invalid choice");

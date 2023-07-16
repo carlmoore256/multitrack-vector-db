@@ -71,6 +71,10 @@ export function loadJSON<T>(filename : string) : T {
     return JSON.parse(data) as T;
 }
 
+export function saveText(data : string, outputFilename : string) {
+    writeFileSync(outputFilename, data);
+}
+
 export function getIdFromName(name : string) : string {
     // return name.toLowerCase().replace(/ /g, "-");
     return name.toLowerCase().replace(/[^a-z0-9]/g, "-");

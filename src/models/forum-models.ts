@@ -19,6 +19,7 @@ export interface IForumPost {
     username: string | null;
     date: string | Date | null;
     content: string | null;
+    vector?: number[];
     attachment_id: string | null;
 }
   

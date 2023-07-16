@@ -117,10 +117,11 @@ CREATE TABLE IF NOT EXISTS forum_post (
     username TEXT, -- just have both for ease of use when querying chats
     date TEXT,
     content TEXT,
-    content_vector vector(1536),
+    vector vector(1536),
     attachment_id TEXT,
     FOREIGN KEY(thread_id) REFERENCES forum_thread(id),
     FOREIGN KEY(author_id) REFERENCES forum_user(id)
+    -- FOREIGN KEY(attachment_id) REFERENCES multitrack_recording_download(id) NEW MAKE SURE THIS WILL WORK
 );
 
 CREATE TABLE IF NOT EXISTS audio_window (
@@ -136,9 +137,26 @@ CREATE TABLE IF NOT EXISTS audio_window (
     normalized_time_end REAL NOT NULL,
     normalized_time_length REAL NOT NULL,
     clip_index INTEGER,
-    content_vector vector(420), -- use a tokenizer like beats to get this - also, change the size
+    vector vector(420), -- use a tokenizer like beats to get this - also, change the size
     FOREIGN KEY(file_id) REFERENCES datastore_file
 (id)
+);
+
+
+CREATE TABLE IF NOT EXISTS instrument (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    vector vector(1536), -- token of the name
+    description TEXT
+);
+
+
+CREATE TABLE IF NOT EXISTS recording_file_instrument (
+    file_id TEXT NOT NULL,
+    instrument_id TEXT NOT NULL,
+    PRIMARY KEY(file_id, instrument_id),
+    FOREIGN KEY(file_id) REFERENCES recording_file(file_id),
+    FOREIGN KEY(instrument_id) REFERENCES instrument(id)
 );
 
 -- CREATE VIRTUAL TABLE audioEmbeddings USING vss0(

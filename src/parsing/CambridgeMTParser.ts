@@ -36,7 +36,7 @@ export class CambridgeMTParser {
             try {
                 const res = await genre.insertIntoDatabase(this.dbClient);
             } catch (e) {
-                Debug.logError(e);
+                Debug.error(e);
             }
         }
         
@@ -45,7 +45,7 @@ export class CambridgeMTParser {
             try {
                 await artist.insertIntoDatabase(this.dbClient);
             } catch (e) {
-                Debug.logError(e);
+                Debug.error(e);
             }
         }
     
@@ -54,7 +54,7 @@ export class CambridgeMTParser {
             try {
                 await recording.insertIntoDatabase(this.dbClient);
             } catch (e) {
-                Debug.logError(e);
+                Debug.error(e);
             }
         }
     
@@ -90,7 +90,7 @@ export class CambridgeMTParser {
                 pbar.update();
     
             } catch (e) {
-                Debug.logError(e);
+                Debug.error(e);
             }
         }
     

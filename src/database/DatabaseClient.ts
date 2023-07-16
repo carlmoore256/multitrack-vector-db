@@ -111,6 +111,16 @@ export class DatabaseClient {
         return await parseTables(initTables, this);
     }
 
+    public async runQueryRowsFromFile(filename: string, basePath="./sql/queries/") : Promise<any[] | null> {
+        const query = readFileSync(basePath + filename, 'utf-8');
+        try {
+            return await this.queryRows(query);
+        } catch (error) {
+            Debug.error(error, LogColor.Red);
+            return null;
+        }           
+    }
+
     public async disconnect() {
         await this.db.end();
     }
