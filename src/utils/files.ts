@@ -55,6 +55,19 @@ export function checkMakeDir(dir: string) {
     }
 }
 
+export function incrementingFolderName(dir: string, prefix: string, makeDir: boolean = true) {
+    let i = 0;
+    let res = path.join(dir, `${prefix}${i.toString()}`);
+    while (existsSync(res)) {
+        i++;
+        res = path.join(dir, `${prefix}${i.toString()}`);
+    }
+    if (makeDir) {
+        mkdirSync(res);
+    }
+    return res;
+}
+
 export function getMimeType(filename: string) {
     return mime.getType(filename);
 }

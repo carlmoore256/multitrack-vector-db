@@ -143,12 +143,22 @@ CREATE TABLE IF NOT EXISTS audio_window (
 );
 
 
-CREATE TABLE IF NOT EXISTS instrument (
+CREATE TABLE IF NOT EXISTS instrument_category (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
-    vector vector(1536), -- token of the name
-    description TEXT
+    description TEXT,
+    vector vector(1536) -- token of the name / description
 );
+
+CREATE TABLE IF NOT EXISTS instrument (
+    id TEXT PRIMARY KEY,
+    category_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    vector vector(1536), -- token of the name / description
+    description TEXT,
+    FOREIGN KEY(category_id) REFERENCES instrument_category(id)
+);
+
 
 
 CREATE TABLE IF NOT EXISTS recording_file_instrument (

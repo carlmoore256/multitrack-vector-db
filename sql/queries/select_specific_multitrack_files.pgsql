@@ -1,12 +1,26 @@
-SELECT 
-    multitrack_recording.id as id,
-    multitrack_recording.name as name,
-    recording_file.file_id as file_id
-FROM
-    multitrack_recording
-INNER JOIN
-    recording_file
-ON
-    recording_file.recording_id = multitrack_recording.id
-WHERE
-    id = '6ce586e0-206b-46e2-8c9c-d0560528e4dc';
+WITH avg_vector AS (
+    SELECT 
+        AVG(vector) AS average_vector
+    FROM 
+        forum_post
+    WHERE 
+        date::timestamp >= NOW() - INTERVAL '1 year'
+)
+
+SELECT
+    p.id, 
+    p.thread_id, 
+    p.author_id, 
+    p.username, 
+    p.date, 
+    p.content, 
+    p.attachment_id,
+    p.vector <-> av.average_vector AS distance_to_avg
+FROM 
+    forum_post p, 
+    avg_vector av
+WHERE 
+    p.date::timestamp >= NOW() - INTERVAL '1 year'
+ORDER BY 
+    p.vector <-> av.average_vector
+LIMIT 10;
