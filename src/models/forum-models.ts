@@ -3,32 +3,32 @@ export interface IForumThread {
     url : string;
     title : string;
     author : string;
-    author_id? : string;
+    authorId? : string;
     replies? : number;
     views? : number;
     rating? : number | null;
-    last_post_date? : string;
-    has_attachment? : boolean;
-    recording_id? : string;
+    lastPostDate? : string;
+    hasAttachment? : boolean;
+    recordingId? : string;
 }
 
 export interface IForumPost {
     id: string;
-    thread_id: string | null;
-    author_id: string | null;
+    threadId: string | null;
+    authorId: string | null;
     username: string | null;
     date: string | Date | null;
     content: string | null;
     vector?: number[];
-    attachment_id: string | null;
+    attachmentId: string | null;
 }
   
 
 export interface IForumUser {
     id: string;
     username: string;
-    joined_date: string | null;
-    posts_count: number | null;
-    threads_count: number | null;
-    profile_url: string;
+    joinedDate: string | null;
+    postsCount: number | null;
+    threadsCount: number | null;
+    profileUrl: string;
 }

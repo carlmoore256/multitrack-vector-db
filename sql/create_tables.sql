@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS artist_genre (
     FOREIGN KEY(genre_id) REFERENCES genre(id)
 );
 
-
+-- represents a client datastore_file (file stored in the client side)
 CREATE TABLE IF NOT EXISTS datastore_file (
     id TEXT PRIMARY KEY,
     path TEXT NOT NULL,
@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS datastore_file (
 );
 
 -- a junction table connecting an audio file to a recording
-CREATE TABLE IF NOT EXISTS recording_file (
+CREATE TABLE IF NOT EXISTS multitrack_recording_file (
     file_id TEXT PRIMARY KEY,
     recording_id TEXT NOT NULL,
     FOREIGN KEY(recording_id) REFERENCES multitrack_recording
@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS recording_file (
 
 -- a junction table for a genre assigned to a recording, because it's a many-to-many
 -- relationship, since each recording can have multiple genres
-CREATE TABLE IF NOT EXISTS recording_genre (
+CREATE TABLE IF NOT EXISTS multitrack_recording_genre (
     recording_id TEXT NOT NULL,
     genre_id TEXT NOT NULL,
     PRIMARY KEY(recording_id, genre_id),
@@ -165,7 +165,7 @@ CREATE TABLE IF NOT EXISTS recording_file_instrument (
     file_id TEXT NOT NULL,
     instrument_id TEXT NOT NULL,
     PRIMARY KEY(file_id, instrument_id),
-    FOREIGN KEY(file_id) REFERENCES recording_file(file_id),
+    FOREIGN KEY(file_id) REFERENCES multitrack_recording_file(file_id),
     FOREIGN KEY(instrument_id) REFERENCES instrument(id)
 );
 

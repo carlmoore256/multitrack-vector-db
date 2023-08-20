@@ -1,0 +1,271 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
+}
+
+// ~~~~~~~~ Artists ~~~~~~~~
+
+model Artist {
+  id                   String                @id @default(cuid())
+  name                 String                @map("name")
+  description          String?               @map("description")
+  artistGenres         ArtistGenre[]
+  artistResources      ArtistResource[]
+  multitrackRecordings MultitrackRecording[]
+
+  @@map("artist")
+}
+
+model ArtistGenre {
+  artistId  String @map("artist_id")
+  genreName String @map("genre_id")
+
+  artist Artist @relation(fields: [artistId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  genre  Genre  @relation(fields: [genreName], references: [name], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([artistId, genreName])
+  @@map("artist_genre")
+}
+
+// a url toF an artist's resource (e.g. website, social media, etc.)
+model ArtistResource {
+  id       String @id @default(cuid())
+  artistId String @map("artist_id")
+  uri      String @map("uri")
+
+  artist Artist @relation(fields: [artistId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("artist_resource")
+}
+
+// ~~~~~~~~ Forum ~~~~~~~~
+
+model ForumThread {
+  id            String  @id
+  url           String  @map("url")
+  title         String? @map("title")
+  author        String? @map("author")
+  authorId      String? @map("author_id")
+  replies       Int?    @map("replies")
+  views         Int?    @map("views")
+  rating        Float?  @map("rating") // can contain fractional stars
+  lastPostDate  String? @map("last_post_date")
+  recordingId   String  @map("recording_id")
+  hasAttachment Boolean @default(false) @map("has_attachment")
+
+  forumPosts ForumPost[]
+
+  multitrackRecording MultitrackRecording? @relation(fields: [recordingId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("forum_thread")
+}
+
+model ForumPost {
+  id           String                       @id
+  threadId     String?                      @map("thread_id")
+  authorId     String?                      @map("author_id")
+  username     String?                      @map("username")
+  date         DateTime?                    @map("date")
+  content      String?                      @map("content")
+  attachmentId String?                      @map("attachment_id")
+  vector       Unsupported("vector(1536)")?
+
+  forumUser   ForumUser?   @relation(fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  forumThread ForumThread? @relation(fields: [threadId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("forum_post")
+}
+
+model ForumUser {
+  id           String      @id @map("id")
+  username     String?     @map("username")
+  joinedDate   String?     @map("joined_date")
+  postsCount   Int?        @map("posts_count")
+  threadsCount Int?        @map("threads_count")
+  profileUrl   String?     @map("profile_url")
+  forumPosts   ForumPost[]
+
+  @@map("forum_user")
+}
+
+// ~~~~~~~~ Multitrack Recordings ~~~~~~~~
+
+model MultitrackRecording {
+  id        String  @id @default(cuid())
+  name      String  @map("name")
+  numTracks Int     @map("num_tracks")
+  artistId  String  @map("artist_id")
+  metadata  Json?   @map("metadata")
+  forumUrl  String? @map("forum_url")
+
+  artist Artist @relation(fields: [artistId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  forumThreads                 ForumThread[]
+  multitrackRecordingDownloads MultitrackRecordingDownload[]
+  recordingFiles               MultitrackRecordingFile[]
+  recordingGenres              MultitrackRecordingGenre[]
+
+  @@map("multitrack_recording")
+}
+
+enum MultitrackDownloadType {
+  MULTITRACK
+  PREVIEW
+  FORUM
+  OTHER
+}
+
+model MultitrackRecordingDownload {
+  id          String                 @id @default(cuid())
+  type        MultitrackDownloadType @map("type")
+  filename    String                 @map("filename")
+  url         String                 @map("url")
+  bytes       BigInt?                @map("bytes")
+  recordingId String                 @map("recording_id")
+
+  multitrackRecording MultitrackRecording @relation(fields: [recordingId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("multitrack_recording_download")
+}
+
+model MultitrackRecordingGenre {
+  recordingId String @map("recording_id")
+  genreName   String @map("genre_id")
+
+  genre               Genre               @relation(fields: [genreName], references: [name], onDelete: Cascade, onUpdate: NoAction)
+  multitrackRecording MultitrackRecording @relation(fields: [recordingId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([recordingId, genreName])
+  @@map("multitrack_recording_genre")
+}
+
+model MultitrackRecordingFile {
+  fileId      String @id @default(cuid()) @map("file_id")
+  recordingId String @map("recording_id")
+
+  datastoreFile            DatastoreFile             @relation(fields: [fileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  multitrackRecording      MultitrackRecording       @relation(fields: [recordingId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  recordingFileInstruments RecordingFileInstrument[]
+  AudioWindow              AudioWindow[]
+
+  @@map("multitrack_recording_file")
+}
+
+// ~~~~~~~~ Categories ~~~~~~~~
+
+model Genre {
+  // id        String @id @default(cuid())
+  name      String @id @map("name")
+  subGenres Json?  @map("sub_genres")
+
+  artistGenres    ArtistGenre[]
+  recordingGenres MultitrackRecordingGenre[]
+
+  @@map("genre")
+}
+
+model Instrument {
+  id          String  @id @default(cuid())
+  name        String  @map("name")
+  description String? @map("description")
+
+  recordingFileInstruments RecordingFileInstrument[]
+
+  @@map("instrument")
+}
+
+model InstrumentCategory {
+  id          String                       @id @default(cuid())
+  name        String                       @map("name")
+  description String?                      @map("description")
+  vector      Unsupported("vector(1536)")? @map("vector")
+
+  @@map("instrument_category")
+}
+
+model RecordingFileInstrument {
+  fileId       String @map("file_id")
+  instrumentId String @map("instrument_id")
+
+  recordingFile MultitrackRecordingFile @relation(fields: [fileId], references: [fileId], onDelete: NoAction, onUpdate: NoAction)
+  instrument    Instrument              @relation(fields: [instrumentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([fileId, instrumentId])
+  @@map("recording_file_instrument")
+}
+
+model Items {
+  id        BigInt                       @id @default(autoincrement())
+  embedding Unsupported("vector(1536)")? @map("embedding")
+
+  @@map("items")
+  @@ignore
+}
+
+// ~~~~~~ Client ~~~~~~
+
+// a client of the platform
+model Client {
+  id            String          @id @default(cuid())
+  name          String          @map("name") // this is the device name for the client
+  apiKey        String          @map("api_key")
+  email         String          @map("email")
+  passwordHash  String          @map("password_hash")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+  DatastoreFile DatastoreFile[]
+
+  @@map("client")
+}
+
+// represents a file stored in a client's datastore
+model DatastoreFile {
+  id        String    @id @default(cuid())
+  clientId  String    @map("client_id")
+  path      String    @map("path")
+  name      String    @map("name")
+  bytes     BigInt?   @map("bytes")
+  extension String?   @map("extension")
+  type      String?   @map("type")
+  createdAt DateTime? @map("created_at")
+  updatedAt DateTime? @map("updated_at")
+  metadata  String?
+
+  // a client owns a datastore file
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  recordingFile MultitrackRecordingFile?
+
+  @@map("datastore_file")
+}
+
+// ~~~~~~~~ Audio ~~~~~~~~
+
+model AudioWindow {
+  id                   String @id @default(cuid())
+  fileId               String @map("file_id")
+  sampleStart          Int    @map("sample_start")
+  sampleEnd            Int    @map("sample_end")
+  sampleLength         Int    @map("sample_length")
+  timeStart            Float  @map("time_start")
+  timeEnd              Float  @map("time_end")
+  timeLength           Float  @map("time_length")
+  normalizedTimeStart  Float  @map("normalized_time_start")
+  normalizedTimeEnd    Float  @map("normalized_time_end")
+  normalizedTimeLength Float  @map("normalized_time_length")
+  clipIndex            Int?   @map("clip_index")
+
+  // once we find out the correct size of the vector
+  vector Unsupported("vector(100)")? @map("vector")
+
+  // datastoreFile DatastoreFile @relation(fields: [fileId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  multitrackRecordingFile MultitrackRecordingFile @relation(fields: [fileId], references: [fileId], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("audio_window")
+}

@@ -1,4 +1,3 @@
-import { IMultitrackRecording, IRecordingDownloadableResource, RecordingDownloadableResourceType } from "../models/cambridge-models.js";
 import DatabaseClient from "../database/DatabaseClient.js";
 import { generateId } from "../utils/utils.js";
 import axios from 'axios'; // or use any other HTTP client

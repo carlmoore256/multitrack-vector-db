@@ -1,4 +1,4 @@
-import { IMultitrackRecording, IRecordingDownloadableResource, RecordingDownloadableResourceType } from "../models/cambridge-models.js";
+import { IMultitrackRecording } from "../models/cambridge-models.js";
 import { DownloadManager } from "./DownloadManager.js";
 import { DownloadCallbacks, DownloadJob } from "./DownloadJob.js";
 import { getRecordingDestinationPath } from "../parsing/MultitrackRecording.js";
@@ -8,6 +8,7 @@ import { IAudioFile } from "../models/audio-models.js";
 import { Debug } from "../utils/Debug.js";
 import { readFileSync } from "fs";
 import DatabaseClient from "../database/DatabaseClient.js";
+import { PrismaClient, MultitrackDownloadType, MultitrackRecording } from "@prisma/client";
 import path from "path";
 
 
@@ -23,13 +24,13 @@ export class CambridgeMTDownloader {
     private async handleDownloadComplete(
         downloadPath: string,
         recordingId: string,
-        downloadType: RecordingDownloadableResourceType,
+        downloadType: MultitrackDownloadType,
     ) {
         switch (downloadType) {
-            case "multitrack":
+            case MultitrackDownloadType.MULTITRACK:
                 await this.datastore.ingestZipMultitrack(downloadPath, recordingId);
                 break;
-            case "preview":
+            case MultitrackDownloadType.PREVIEW:
                 await this.datastore.ingestSingleFileForRecording(downloadPath, recordingId);
                 break;
             default:
@@ -40,7 +41,7 @@ export class CambridgeMTDownloader {
     // supply a client and a string query
     public async downloadFromQuery(
         query: string,
-        type: RecordingDownloadableResourceType | "all" = "multitrack"
+        type: MultitrackDownloadType = MultitrackDownloadType.MULTITRACK
     ) {
 
         const res = await this.dbClient.queryRows(query);
@@ -49,7 +50,7 @@ export class CambridgeMTDownloader {
             return;
         }
 
-        const recordings = res.map(r => r as IMultitrackRecording);
+        const recordings = res.map(r => r as MultitrackRecording);
         if (!recordings || recordings.length === 0) {
             console.log('No recordings found');
             return;
@@ -112,7 +113,7 @@ export class CambridgeMTDownloader {
             id: string;
             url: string;
             filename: string;
-            type: RecordingDownloadableResourceType;
+            type: MultitrackDownloadType;
             num_tracks: number;
             name: string;
             bytes: number;
@@ -165,7 +166,7 @@ export class CambridgeMTDownloader {
     // helper to query and download tracks
     public async downloadMultitrackRecording(
         recording: IMultitrackRecording,
-        type: RecordingDownloadableResourceType | "all" = "multitrack") {
+        type: MultitrackDownloadType = MultitrackDownloadType.MULTITRACK) {
 
         var query = `SELECT
             multitrack_recording_download.id AS id, 
@@ -176,13 +177,13 @@ export class CambridgeMTDownloader {
         FROM
             multitrack_recording_download
         LEFT JOIN
-            recording_file
+            multitrack_recording_file
         ON
-            multitrack_recording_download.recording_id = recording_file.recording_id
+            multitrack_recording_download.recording_id = multitrack_recording_file.recording_id
         LEFT JOIN
             datastore_file
         ON
-            recording_file.file_id = datastore_file.id
+            multitrack_recording_file.file_id = datastore_file.id
         WHERE
             multitrack_recording_download.recording_id = ?
         `
@@ -192,7 +193,7 @@ export class CambridgeMTDownloader {
 
         const results = await this.dbClient.queryRows(query, [recording.id]) as {
             id: string;
-            type: RecordingDownloadableResourceType;
+            type: MultitrackDownloadType;
             filename: string;
             url: string;
             bytes: number;
@@ -325,7 +326,7 @@ export async function generalQuery(
 // // insert the audio files into the database
 // audioFiles.forEach(a => this.dbClient.insert('audio_file', a));
 // // set up the junction table entries that link a recording to an audiofile
-// audioFiles.forEach(a => this.dbClient.insert('recording_file', {
+// audioFiles.forEach(a => this.dbClient.insert('multitrack_recording_file', {
 //     recording_id: recording.id,
 //     file_id: a.id,
 // }));
@@ -342,15 +343,15 @@ export async function generalQuery(
     //     FROM
     //         multitrack_recording
     //     LEFT JOIN
-    //         recording_file
+    //         multitrack_recording_file
     //     ON
-    //         multitrack_recording.id = recording_file.recording_id
+    //         multitrack_recording.id = multitrack_recording_file.recording_id
     //     INNER JOIN
     //         multitrack_recording_download
     //     ON
     //         multitrack_recording.id = multitrack_recording_download.recording_id
     //     WHERE
-    //         recording_file.recording_id IS NULL
+    //         multitrack_recording_file.recording_id IS NULL
     //     AND
     //         multitrack_recording_download.bytes > 0
     //     AND

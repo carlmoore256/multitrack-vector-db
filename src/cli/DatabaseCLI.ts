@@ -62,6 +62,10 @@ export class DatabaseCLI {
                         name: "3. Download + parse a queried subset of forum posts and users (contains posts, replies, user accounts & user mixes)",
                     },
                     {
+                        value: "parseCachedForumPosts",
+                        name: "3.1 Parse cached forum posts",
+                    },
+                    {
                         value: "downloadMultitracks",
                         name: "4. Download multitracks with a given query",
                     },
@@ -76,7 +80,7 @@ export class DatabaseCLI {
                     {
                         value: "vectorizeForumPosts",
                         name: "7. Vectorize all forum posts",
-                    }
+                    },
                 ],
                 "Select an option"
             );
@@ -117,6 +121,9 @@ export class DatabaseCLI {
                     );
                     await this.parser.parseAllForumPosts(query);
                     break;
+                case "parseCachedForumPosts":
+                    await this.parser.parseAllCachedForumPosts();
+                    break;
                 case "downloadMultitracks":
                     await new CambridgeMTDownloader(
                         this.dbClient,
@@ -154,9 +161,9 @@ export class DatabaseCLI {
                         FROM 
                             forum_thread
                         INNER JOIN
-                            recording_file
+                        multitrack_recording_file
                         ON
-                            forum_thread.recording_id = recording_file.recording_id
+                            forum_thread.recording_id = multitrack_recording_file.recording_id
                         LEFT JOIN
                             forum_post
                         ON

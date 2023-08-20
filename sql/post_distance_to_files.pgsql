@@ -8,7 +8,7 @@ SELECT
 
     -- think about how we can query specific files based on distance from post embeddings
     -- for instance, a post talking about toms, is related to the multitrack_recording, 
-    -- and we can join that recording with recording_files, then join with instruments,
+    -- and we can join that recording with multitrack_recording_files, then join with instruments,
     -- which then has embeddings on names. We can then get distances from those names,
     -- from which we are able to guess whatever file they are talking about that is most relevant
 FROM
@@ -22,13 +22,13 @@ INNER JOIN
 ON
     multitrack_recording.id = forum_thread.recording_id
 LEFT JOIN
-    recording_file
+    multitrack_recording_file
 ON
-    recording_file.recording_id = multitrack_recording.id
+    multitrack_recording_file.recording_id = multitrack_recording.id
 LEFT JOIN
     datastore_file
 ON
-    datastore_file.id = recording_file.file_id
+    datastore_file.id = multitrack_recording_file.file_id
 WHERE
     vector IS NOT NULL
 ORDER BY

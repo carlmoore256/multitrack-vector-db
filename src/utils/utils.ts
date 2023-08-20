@@ -1,11 +1,13 @@
 import { readFileSync, existsSync, writeFileSync, mkdirSync } from "fs";
 import { v4 as uuidv4 } from 'uuid';
+import cuid from 'cuid';
 import { createHash } from "crypto";
 import path from "path";
 import { Debug } from "./Debug.js";
 import axios from 'axios';
+import dotenv from 'dotenv';
 
-const CACHE_DIR = "./data/cache/";
+const CACHE_DIR = process.env.CACHE_DIR || "./data/cache";
 
 export async function checkLoadCache<T>(
         url : string, cacheId : string, 
@@ -81,7 +83,8 @@ export function getIdFromName(name : string) : string {
 }
 
 export function generateId() {
-    return uuidv4();
+    // return uuidv4();
+    return cuid();
 }
 
 export function generateHashId(input : string, length : number, algorithm = 'sha256') {

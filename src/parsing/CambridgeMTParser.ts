@@ -2,7 +2,7 @@ import { CambridgeMTScraper } from "./Scraper.js";
 import { IForumThread } from "../models/forum-models.js";
 import { DatabaseClient } from "../database/DatabaseClient.js";
 import { Debug, LogColor } from "../utils/Debug.js";
-import { insertAllForumsIntoDatabase, crawlForumPostingsForURL } from "./Forum.js";
+import { crawlForumPostingsForURL } from "./Forum.js";
 import { CambridgeMTForumThreadScraper, crawlForumThreads } from "./ForumThread.js";
 import { getCambridgeForumListingURL } from "./forum-parsers.js";
 import { yesNoPrompt, selectPrompt } from "../cli/cli-promts.js";
@@ -11,6 +11,12 @@ import { CambridgeMTRecording } from "./MultitrackRecording.js";
 import ProgressBar, { ProgressBarOptions} from "progress";
 // import logUpdate from "log-update";
 import { debugPBar } from "../cli/progress-bar.js";
+import { getAllFilesInDir } from "../utils/files.js";
+
+import { Prisma, ForumThread, PrismaClient } from "@prisma/client";
+import dotenv from "dotenv";
+dotenv.config();
+
 
 Debug.log("Connected to database", LogColor.Green);
 export const DEFAULT_QUERY_FORUM_THREADS = `SELECT id, name, forum_url FROM multitrack_recording`;
@@ -29,12 +35,15 @@ export class CambridgeMTParser {
         await scraper.parseRecordings();
         Debug.log("Scraping complete");
         const { genres, artists, recordings } = scraper;
+
+
+        const client = new PrismaClient();
     
     
         Debug.log("Inserting genres");
         for (const genre of genres) {
             try {
-                const res = await genre.insertIntoDatabase(this.dbClient);
+                const res = await genre.insertIntoDatabase(client);
             } catch (e) {
                 Debug.error(e);
             }
@@ -43,7 +52,7 @@ export class CambridgeMTParser {
         Debug.log("Inserting artists");
         for (const artist of artists) {
             try {
-                await artist.insertIntoDatabase(this.dbClient);
+                await artist.insertIntoDatabase(client);
             } catch (e) {
                 Debug.error(e);
             }
@@ -52,7 +61,7 @@ export class CambridgeMTParser {
         Debug.log("Inserting recordings");
         for (const recording of recordings) {
             try {
-                await recording.insertIntoDatabase(this.dbClient);
+                await recording.insertIntoDatabase(client);
             } catch (e) {
                 Debug.error(e);
             }
@@ -74,6 +83,8 @@ export class CambridgeMTParser {
     
         const timeStart = Date.now();
         const recordings = await this.dbClient.queryRows(query) as any[];
+
+        const client = new PrismaClient();
     
         Debug.log("Inserting forum threads");
         
@@ -82,11 +93,14 @@ export class CambridgeMTParser {
         for (const recording of recordings) {
             try {
                 const allForumThreads = await crawlForumPostingsForURL(recording.forum_url, recording);
-                const res = await insertAllForumsIntoDatabase(this.dbClient, allForumThreads);
-                const exists = res.filter((r : string) => r === "exists").length;
-                const inserted = res.filter((r : string) => r === "inserted").length;
-                const failed = res.filter((r : string) => r === "failed").length;
-                Debug.log(`[FORUMS] : ${inserted} inserted | ${exists} exist | ${failed} failed`, LogColor.Green);
+                // const res = await insertAllForumsIntoDatabase(this.dbClient, allForumThreads);
+
+                const batch = await client.forumPost.createMany({
+                    data: allForumThreads,
+                    skipDuplicates: true
+                });
+
+                Debug.log(`[FORUMS] : ${batch.count} inserted | ${allForumThreads.length - batch.count} existing`, LogColor.Green);
                 pbar.update();
     
             } catch (e) {
@@ -104,9 +118,14 @@ export class CambridgeMTParser {
     
     // parse all the forum posts according to a query
     // this is expensive on network and storage, so query interesting ones
-    async parseAllForumPosts(query : string = DEFAULT_QUERY_FORUM_POSTS) {
+    async parseAllForumPosts(query : Prisma.ForumThreadWhereInput) {
     
-        const threads = await this.dbClient.queryRows(query) as IForumThread[];
+        // const threads = await this.dbClient.queryRows(query) as IForumThread[];
+        const client = new PrismaClient();
+        const threads = await client.forumThread.findMany({
+            where : query
+        })
+
         Debug.log(`Query returned ${threads.length} threads, starting crawl...`);
     
         const timeStart = Date.now();
@@ -114,15 +133,29 @@ export class CambridgeMTParser {
     
         for(const thread of threads) {
             Debug.log(`Crawling thread ${thread.id} - ${thread.title} - ${thread.views} views | ${thread.url}`)
-            const scraper = new CambridgeMTForumThreadScraper(thread.url, 0, thread);
+            const scraper = new CambridgeMTForumThreadScraper(thread);
     
             await scraper.load();
     
-            const { posts, users, attachments } = await crawlForumThreads(scraper);
+            const { posts, users, downloads: attachments } = await crawlForumThreads(scraper);
+
+            await client.forumUser.createMany({
+                data: users,
+                skipDuplicates: true
+            });
+
+            await client.forumPost.createMany({
+                data: posts,
+                skipDuplicates: true
+            });
+
+            await client.multitrackRecordingDownload.createMany({
+                data: attachments,
+            })
             
-            await this.dbClient.upsertMany('forum_user', users);
-            await this.dbClient.upsertMany('forum_post', posts);
-            await this.dbClient.upsertMany('multitrack_recording_download', attachments);
+            // await this.dbClient.upsertMany('forum_user', users);
+            // await this.dbClient.upsertMany('forum_post', posts);
+            // await this.dbClient.upsertMany('multitrack_recording_download', attachments);
     
             Debug.log(`[INSERTED] ${posts.length} posts | ${users.length} users | ${attachments.length} attachments`, LogColor.Green);
     
@@ -130,5 +163,47 @@ export class CambridgeMTParser {
         }
         
         console.log(`Done in ${(Date.now() - timeStart) / 1000} seconds`);
+    }
+
+    async parseAllCachedForumPosts() {
+        let allCacheFiles = getAllFilesInDir(process.env.CACHE_DIR as string);
+        allCacheFiles = allCacheFiles.map(f => f.replace(process.env.CACHE_DIR as string, "").replace(".html", "").replace("/", ""));
+        const threadUrls = allCacheFiles.filter(f => f.startsWith("discussion") && f.includes("showthread.php_tid"));
+        const threadIds = threadUrls.map(url => url.split("tid_")[1].split("_")[0]);
+        const uniqueThreadIds = new Set(threadIds);
+
+        const pbar = debugPBar(uniqueThreadIds.size);
+
+        const client = new PrismaClient();
+
+
+        for (const id of uniqueThreadIds) {
+
+            const thread = await client.forumThread.findUnique({
+                where : { id }
+            });
+
+            if (!thread) {
+                Debug.error(`Could not find thread with id ${id}`);
+                continue;
+            }
+
+
+            const scraper = new CambridgeMTForumThreadScraper(thread);
+    
+            await scraper.load();
+    
+            const { posts, users, downloads: attachments } = await crawlForumThreads(scraper);
+            
+            // await this.dbClient.upsertMany('forum_user', users);
+            // await this.dbClient.upsertMany('forum_post', posts);
+            // await this.dbClient.upsertMany('multitrack_recording_download', attachments);    
+            pbar.update();
+        }
+
+        console.log(`Number existing in cache: ${threadIds.length}`);
+
+
+
     }
 }

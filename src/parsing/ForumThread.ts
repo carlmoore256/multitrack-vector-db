@@ -3,15 +3,16 @@ import { IForumUser, IForumThread } from "../models/forum-models.js";
 import { CachedWebPage } from "../downloading/CachedWebPage.js";
 import Debug, { LogColor } from "../utils/Debug.js";
 import { IRecordingDownloadableResource } from "../models/cambridge-models.js";
+import { ForumThread, ForumUser, MultitrackRecordingDownload } from "@prisma/client";
 
 export class CambridgeMTForumThreadScraper extends CachedWebPage {
 
-    public threadId: number;
+    // public threadId: number;
 
-    constructor(public pageURLBase: string, public pageNumber: number = 1, public thread: IForumThread) {
-        const fullPageURL = pageURLBase + "&page=" + pageNumber;
-        super(`cambridge-forum-${getThreadId(pageURLBase)}`, fullPageURL);
-        this.threadId = getThreadId(pageURLBase);
+    constructor(public thread: ForumThread, public pageNumber: number = 1) {
+        const fullPageURL = thread.url + "&page=" + pageNumber;
+        // const threadId = getThreadId(pageURLBase || thread.url);
+        super(`cambridge-forum-${thread.id}`, fullPageURL);
     }
 
     get postsElement(): HTMLElement {
@@ -44,7 +45,7 @@ export class CambridgeMTForumThreadScraper extends CachedWebPage {
         const maxPages = this.getMaxPages();
         if (maxPages && this.pageNumber < maxPages) {
             Debug.log("\n\Getting page " + this.pageNumber + 1 + " of " + maxPages);
-            const nextPageScraper = new CambridgeMTForumThreadScraper(this.pageURLBase, this.pageNumber + 1, this.thread);
+            const nextPageScraper = new CambridgeMTForumThreadScraper(this.thread, this.pageNumber + 1);
             await nextPageScraper.load();
             return nextPageScraper;
         }
@@ -55,8 +56,8 @@ export class CambridgeMTForumThreadScraper extends CachedWebPage {
 
 }
 
-export function consolidateUsers(users: IForumUser[]): IForumUser[] {
-    const consolidatedUsers = new Map<string, IForumUser>();
+export function consolidateUsers(users: ForumUser[]): ForumUser[] {
+    const consolidatedUsers = new Map<string, ForumUser>();
     for (const user of users) {
         if (user.id in consolidatedUsers) {
             continue;
@@ -67,8 +68,8 @@ export function consolidateUsers(users: IForumUser[]): IForumUser[] {
     return Array.from(consolidatedUsers.values());
 }
 
-export function consolidateAttachments(attachments: IRecordingDownloadableResource[]): IRecordingDownloadableResource[] {
-    const consolidatedAttachments = new Map<string, IRecordingDownloadableResource>();
+export function consolidateAttachments(attachments: MultitrackRecordingDownload[]): MultitrackRecordingDownload[] {
+    const consolidatedAttachments = new Map<string, MultitrackRecordingDownload>();
     for (const attachment of attachments) {
         if (!attachment.id) {
             continue;
@@ -87,7 +88,7 @@ export async function crawlForumThreads(scraper: CambridgeMTForumThreadScraper):
     const allData: IForumPostData = {
         posts: [],
         users: [],
-        attachments: []
+        downloads: []
     };
     await scraper.load();
     while (scraper) {
@@ -96,11 +97,11 @@ export async function crawlForumThreads(scraper: CambridgeMTForumThreadScraper):
             Debug.error("Error parsing forum thread page");
             return allData;
         }
-        const { posts, users, attachments } = parsed;
+        const { posts, users, downloads: attachments } = parsed;
 
         allData.posts.push(...posts);
         allData.users.push(...users);
-        allData.attachments.push(...consolidateAttachments(attachments)); // there might be repeats of attatchments
+        allData.downloads.push(...consolidateAttachments(attachments)); // there might be repeats of attatchments
 
         // users will post in multiple forums, but we just want a single one
         allData.users = consolidateUsers(allData.users);

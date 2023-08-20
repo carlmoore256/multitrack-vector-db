@@ -9,9 +9,9 @@ INNER JOIN
 ON
     forum_thread.recording_id = multitrack_recording.id
 RIGHT JOIN
-    recording_file
+    multitrack_recording_file
 ON
-    multitrack_recording.id = recording_file.recording_id
+    multitrack_recording.id = multitrack_recording_file.recording_id
 GROUP BY
     thread_id
 HAVING

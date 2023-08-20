@@ -48,9 +48,9 @@ export async function queryAllFilenames(
     FROM 
         datastore_file
     JOIN 
-        recording_file
+        multitrack_recording_file
     ON 
-        datastore_file.id = recording_file.file_id;`;
+        datastore_file.id = multitrack_recording_file.file_id;`;
     let queryRows = await databaseClient.queryRows(query);
     if (!queryRows) {
         throw new Error("Could not get filenames");

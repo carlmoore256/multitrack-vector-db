@@ -82,5 +82,5 @@ export async function addAudioFileToDatabase(dbClient : DatabaseClient, audioFil
         file_id: audioFile.id,
     };
 
-    return await dbClient.insert('recording_file', recordingFile);
+    return await dbClient.insert('multitrack_recording_file', recordingFile);
 }

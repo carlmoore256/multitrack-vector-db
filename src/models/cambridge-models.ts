@@ -4,7 +4,7 @@ import { IAudioFile } from "./audio-models.js";
 export interface IGenre {
     id : string;
     name : string;
-    sub_genres? : string[];
+    subGenres? : string[];
 }
 
 
@@ -17,7 +17,7 @@ export interface IArtist {
 
 export interface IArtistResource {
     id : string;
-    artist_id : string;
+    artistId : string;
     uri : string;
 }
 
@@ -25,7 +25,7 @@ export interface IArtistResource {
 export interface IMultitrackRecording {
     id : string;
     name : string;
-    num_tracks : number;
+    numTracks : number;
     artist : IArtist | string;
     genres : IGenre[] | string[];
     tags? : string[];
@@ -42,5 +42,5 @@ export interface IRecordingDownloadableResource {
     url : string;
     filename : string;
     bytes? : number | null;
-    recording_id? : string | null;
+    recordingId? : string | null;
 }
