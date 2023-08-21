@@ -70,7 +70,7 @@ export function parseThread(
         ? getUserId(getAttributeValue(element, ".author a", "href") as string)
         : null;
     const replies = getTextContent(element, "td:nth-child(4) a");
-    const views = getTextContent(element, "td:nth-child(5)");
+    const views = getTextContent(element, "td:nth-child(5)")?.replace(",", "");
     const ratingText = getTextContent(element, ".star_rating .current_rating");
     const rating = ratingText
         ? Number(ratingText.split("-")[1].trim().split(" ")[0])

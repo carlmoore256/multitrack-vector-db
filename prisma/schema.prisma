@@ -47,13 +47,29 @@ model ArtistResource {
 // ~~~~~~~~ Cache ~~~~~~~~
 
 model CachedDocument {
-  id        String  @id @default(cuid())
-  url       String  @map("url")
-  html      String? @map("html")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id                        String                      @id @default(cuid())
+  url                       String                      @unique @map("url")
+  html                      Bytes                       @map("html")
+  label                     String?                     @map("label")
+  createdAt                 DateTime                    @default(now()) @map("created_at")
+  updatedAt                 DateTime                    @updatedAt @map("updated_at")
+  ForumThreadCachedDocument ForumThreadCachedDocument[]
 
   @@map("cached_document")
+}
+
+// contains a cached document for a forum thread
+// with each page 
+model ForumThreadCachedDocument {
+  // id               String @id @default(cuid())
+  cachedDocumentId String @map("cached_document_id")
+  forumThreadId    String @map("forum_thread_id")
+  page             Int    @map("page")
+
+  @@id([cachedDocumentId, forumThreadId, page])
+
+  cachedDocument CachedDocument @relation(fields: [cachedDocumentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  forumThread    ForumThread    @relation(fields: [forumThreadId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 // ~~~~~~~~ Forum ~~~~~~~~
@@ -73,7 +89,8 @@ model ForumThread {
 
   forumPosts ForumPost[]
 
-  multitrackRecording MultitrackRecording? @relation(fields: [recordingId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  multitrackRecording       MultitrackRecording?        @relation(fields: [recordingId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  ForumThreadCachedDocument ForumThreadCachedDocument[]
 
   @@map("forum_thread")
 }
@@ -116,8 +133,6 @@ model MultitrackRecording {
   metadata  Json?   @map("metadata")
   forumUrl  String? @map("forum_url")
 
-  @@unique([name, artistId])
-
   artist Artist @relation(fields: [artistId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   forumThreads                 ForumThread[]
@@ -125,6 +140,7 @@ model MultitrackRecording {
   recordingFiles               MultitrackRecordingFile[]
   recordingGenres              MultitrackRecordingGenre[]
 
+  @@unique([name, artistId])
   @@map("multitrack_recording")
 }
 

@@ -33,7 +33,9 @@ export function debugPBar(count: number, options: ProgressBarOptions = DEFAULT_B
         pbar.tick();
         if (!includeDebug) return;
         const logs = Debug.getBackLog(true);
-        logUpdate(`\n${logs.join('\n')}\nCrawling Forums - Progress:\n${pbar.complete ? '\nComplete' : pbar.curr + '/' + pbar.total}\n${pbar.toString()}`);
+        logUpdate()
+        pbar.render();
+        // logUpdate(`\n${logs.join('\n')}\nCrawling Forums - Progress:\n${pbar.complete ? '\nComplete' : pbar.curr + '/' + pbar.total}\n${pbar.toString()}`);
 
         if (pbar.complete) {
             Debug.enableLogging = true;

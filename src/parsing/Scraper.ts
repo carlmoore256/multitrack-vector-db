@@ -1,10 +1,9 @@
 import {JSDOM} from "jsdom";
 import { readFileSync, existsSync, writeFileSync, mkdirSync } from "fs";
-import { checkLoadCache } from "../utils/utils.js";
 import { CambridgeMTRecording } from "./MultitrackRecording.js";
 import { CambridgeMTGenre, consolidateGenres } from "./Genre.js";
 import { CambridgeMTArtist, consolidateArtists } from "./Artist.js";
-import { CachedWebPage } from "../downloading/CachedWebPage.js";
+import { CachedWebDocument } from "../downloading/CachedWebPage.js";
 import Debug from "../utils/Debug.js";
 
 const BASE_URL = "https://www.cambridge-mt.com/ms/mtk/";
@@ -24,16 +23,16 @@ export type CambridgeMTDatabaseTypes = {
 
 
 
-export class CambridgeMTScraper extends CachedWebPage {
+export class CambridgeMTScraper extends CachedWebDocument {
 
     private _recordings : CambridgeMTRecording[] | null = null;
 
     constructor(pageURL: string = BASE_URL) {
-        super('cambridge-mt', pageURL)
+        super(pageURL, "MAIN_PAGE")
     }
 
     get recordings() : CambridgeMTRecording[] {
-        if (!this.page) {
+        if (!this.document) {
             throw new Error("Page not loaded");
         }
         if (!this._recordings) {
@@ -57,10 +56,10 @@ export class CambridgeMTScraper extends CachedWebPage {
     }
 
     async parseRecordings() : Promise<CambridgeMTRecording[]> {
-        if (!this.page) {
+        if (!this.document) {
             throw new Error("Page not loaded");
         }
-        const recordingElements = this.page.querySelectorAll('.m-mtk-track');
+        const recordingElements = this.document.querySelectorAll('.m-mtk-track');
         Debug.log(`Parsing ${recordingElements.length} recordings`);
         const recordings = Array.from(recordingElements).map(e => {
             return CambridgeMTRecording.fromElement(e as HTMLElement)

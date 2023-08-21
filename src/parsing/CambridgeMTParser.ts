@@ -17,6 +17,7 @@ import { debugPBar } from "../cli/progress-bar.js";
 import { getAllFilesInDir } from "../utils/files.js";
 
 import { Prisma, ForumThread, PrismaClient } from "@prisma/client";
+import client from "../database/prisma.js";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -31,13 +32,15 @@ export class CambridgeMTParser {
 
     async parseAllMultitracks(): Promise<CambridgeMTRecording[]> {
         const timeStart = Date.now();
+
         const scraper = new CambridgeMTScraper();
+        // const client = new PrismaClient();
+
         await scraper.load();
         await scraper.parseRecordings();
+
         Debug.log("Scraping complete");
         const { genres, artists, recordings } = scraper;
-
-        const client = new PrismaClient();
 
         Debug.log("Inserting genres");
         for (const genre of genres) {
@@ -84,7 +87,7 @@ export class CambridgeMTParser {
 
         const timeStart = Date.now();
 
-        const client = new PrismaClient();
+        // const client = new PrismaClient();
         // const recordings = await this.dbClient.queryRows(query) as any[];
         const recordings = await client.multitrackRecording.findMany();
 
@@ -138,8 +141,8 @@ export class CambridgeMTParser {
         Debug.enableLogging = true;
     }
 
-    async parsePostsFromThreads(threads: ForumThread[], client?: PrismaClient) {
-        client = client || new PrismaClient();
+    async parsePostsFromThreads(threads: ForumThread[]) {
+        // client = client || new PrismaClient();
 
         const timeStart = Date.now();
         const pbar = debugPBar(threads.length);
@@ -149,7 +152,6 @@ export class CambridgeMTParser {
                 `Crawling thread ${thread.id} - ${thread.title} - ${thread.views} views | ${thread.url}`
             );
             const scraper = new CambridgeMTForumThreadScraper(thread);
-
             await scraper.load();
 
             const { posts, users, downloads } = await crawlForumThreads(
@@ -168,6 +170,7 @@ export class CambridgeMTParser {
 
             await client.multitrackRecordingDownload.createMany({
                 data: downloads,
+                skipDuplicates: true,
             });
 
             Debug.log(
@@ -184,90 +187,64 @@ export class CambridgeMTParser {
     // parse all the forum posts according to a query
     // this is expensive on network and storage, so query interesting ones
     async parseForumPostsFromQuery(query: Prisma.ForumThreadWhereInput) {
-        const client = new PrismaClient();
         const threads = await client.forumThread.findMany({
             where: query,
         });
         Debug.log(
             `Query returned ${threads.length} threads, starting crawl...`
         );
-        this.parsePostsFromThreads(threads, client);
+        this.parsePostsFromThreads(threads);
     }
 
-    async parseAllCachedForumPosts() {
-        let allCacheFiles = getAllFilesInDir(process.env.CACHE_DIR as string);
-        allCacheFiles = allCacheFiles.map((f) =>
-            f
-                .replace(process.env.CACHE_DIR as string, "")
-                .replace(".html", "")
-                .replace("/", "")
-        );
-        const threadUrls = allCacheFiles.filter(
-            (f) =>
-                f.startsWith("discussion") && f.includes("showthread.php_tid")
-        );
-        const threadIds = threadUrls.map(
-            (url) => url.split("tid_")[1].split("_")[0]
-        );
-        const uniqueThreadIds = new Set(threadIds);
+    // async parseAllCachedForumPosts() {
+    //     let allCacheFiles = getAllFilesInDir(process.env.CACHE_DIR as string);
+    //     allCacheFiles = allCacheFiles.map((f) =>
+    //         f
+    //             .replace(process.env.CACHE_DIR as string, "")
+    //             .replace(".html", "")
+    //             .replace("/", "")
+    //     );
+    //     const threadUrls = allCacheFiles.filter(
+    //         (f) =>
+    //             f.startsWith("discussion") && f.includes("showthread.php_tid")
+    //     );
+    //     const threadIds = threadUrls.map(
+    //         (url) => url.split("tid_")[1].split("_")[0]
+    //     );
+    //     const uniqueThreadIds = new Set(threadIds);
 
-        const pbar = debugPBar(uniqueThreadIds.size);
+    //     const pbar = debugPBar(uniqueThreadIds.size);
 
-        const client = new PrismaClient();
+    //     const client = new PrismaClient();
 
-        const threads = await client.forumThread.findMany({
-            where: {
-                id: { in: Array.from(uniqueThreadIds) },
-            },
-        });
+    //     const threads = await client.forumThread.findMany({
+    //         where: {
+    //             id: { in: Array.from(uniqueThreadIds) },
+    //         },
+    //     });
 
-        console.log(`Number existing in cache: ${threadIds.length}`);
+    //     console.log(`Number existing in cache: ${threadIds.length}`);
 
-        for (const thread of threads) {
-            const scraper = new CambridgeMTForumThreadScraper(thread);
-            await scraper.load();
-            const { posts, users, downloads } = await crawlForumThreads(
-                scraper
-            );
-            await client.forumUser.createMany({
-                data: users,
-                skipDuplicates: true,
-            });
+    //     for (const thread of threads) {
+    //         const scraper = new CambridgeMTForumThreadScraper(thread);
+    //         await scraper.load();
+    //         const { posts, users, downloads } = await crawlForumThreads(
+    //             scraper
+    //         );
+    //         await client.forumUser.createMany({
+    //             data: users,
+    //             skipDuplicates: true,
+    //         });
 
-            await client.forumPost.createMany({
-                data: posts,
-                skipDuplicates: true,
-            });
+    //         await client.forumPost.createMany({
+    //             data: posts,
+    //             skipDuplicates: true,
+    //         });
 
-            await client.multitrackRecordingDownload.createMany({
-                data: downloads,
-                skipDuplicates: true,
-            });
-        }
-
-        // for (const id of uniqueThreadIds) {
-        //     const thread = await client.forumThread.findUnique({
-        //         where: { id },
-        //     });
-
-        //     if (!thread) {
-        //         Debug.error(`Could not find thread with id ${id}`);
-        //         continue;
-        //     }
-
-        //     const scraper = new CambridgeMTForumThreadScraper(thread);
-
-        //     await scraper.load();
-
-        //     const { posts, users, downloads } = await crawlForumThreads(
-        //         scraper
-        //     );
-
-        //     // await this.dbClient.upsertMany('forum_user', users);
-        //     // await this.dbClient.upsertMany('forum_post', posts);
-        //     // await this.dbClient.upsertMany('multitrack_recording_download', attachments);
-        //     pbar.update();
-        // }
-
-    }
+    //         await client.multitrackRecordingDownload.createMany({
+    //             data: downloads,
+    //             skipDuplicates: true,
+    //         });
+    //     }
+    // }
 }

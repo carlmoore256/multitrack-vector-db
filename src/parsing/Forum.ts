@@ -3,7 +3,7 @@ import {
     getForumId,
     parseThread,
 } from "./forum-parsers.js";
-import { CachedWebPage } from "../downloading/CachedWebPage.js";
+import { CachedWebDocument } from "../downloading/CachedWebPage.js";
 import { IForumThread } from "../models/forum-models.js";
 import { CambridgeMTRecording } from "./MultitrackRecording.js";
 import { DatabaseClient } from "../database/DatabaseClient.js";
@@ -11,7 +11,7 @@ import Debug, { LogColor } from "../utils/Debug.js";
 
 import { ForumThread, PrismaClient, MultitrackRecording } from "@prisma/client";
 
-export class CambridgeMTForumScraper extends CachedWebPage {
+export class CambridgeMTForumScraper extends CachedWebDocument {
     public forumId: number;
 
     constructor(
@@ -20,7 +20,7 @@ export class CambridgeMTForumScraper extends CachedWebPage {
         public recording: MultitrackRecording
     ) {
         const fullPageURL = pageURLBase + "&page=" + pageNumber;
-        super(`cambridge-forum-${getForumId(pageURLBase)}`, fullPageURL);
+        super(fullPageURL, "FORUM_LIST_PAGE");
         this.forumId = getForumId(pageURLBase);
     }
 
@@ -34,7 +34,7 @@ export class CambridgeMTForumScraper extends CachedWebPage {
     }
 
     public getStickyThread(): any | null {
-        const element = this.page.querySelector(
+        const element = this.document.querySelector(
             "#content table"
         ) as HTMLElement;
         const stickiedElements = element.querySelectorAll("tr.inline_row"); // Select all stickied rows
@@ -47,7 +47,7 @@ export class CambridgeMTForumScraper extends CachedWebPage {
     }
 
     public getThreads(): ForumThread[] {
-        const elements = this.page.querySelectorAll("tr.inline_row");
+        const elements = this.document.querySelectorAll("tr.inline_row");
         const threads: ForumThread[] = [];
         elements.forEach((element) => {
             const thread = parseThread(element as HTMLElement, this.recording);
@@ -57,7 +57,7 @@ export class CambridgeMTForumScraper extends CachedWebPage {
     }
 
     public getMaxPages(): number | null {
-        const pagesSpan = this.page.querySelector(".pages");
+        const pagesSpan = this.document.querySelector(".pages");
         if (pagesSpan) {
             const pagesText = pagesSpan.textContent || "";
             const match = pagesText.match(/\((\d+)\)/); // Match the number inside parentheses
@@ -78,7 +78,8 @@ export class CambridgeMTForumScraper extends CachedWebPage {
                 this.pageNumber + 1,
                 this.recording
             );
-            await nextPageScraper.load();
+
+            await nextPageScraper.load(); 
             return nextPageScraper;
         }
         return null;
@@ -116,90 +117,3 @@ export async function crawlRecordingForumPosts(
     const forumId = getForumId(recording.forumUrl);
     return await crawlForumPostingsForId(forumId, recording);
 }
-
-// export async function crawlForumPostingsForURL(
-//     url: string,
-//     recording: MultitrackRecording
-// ): Promise<ForumThread[]> {
-//     const id = getForumId(url);
-//     return crawlForumPostingsForId(id, recording);
-// }
-
-// export async function crawlForumPostingsForRecordingsToDb(
-//     recording: CambridgeMTRecording,
-//     client: PrismaClient
-// ) {
-//     const postings = await crawlForumPostsForRecording(recording);
-//     for (const p of postings) {
-//         await client.forumThread.upsert({
-//         });
-//     }
-//     //   postings.forEach((posting) => insertForumIntoDatabase(db, posting));
-// }
-
-// export function insertForumIntoDatabase(
-//     db: DatabaseClient,
-//     forum: IForumThread
-// ): Promise<any> {
-//     return new Promise(async (resolve, reject) => {
-//         try {
-//             const existing = await db.getById(
-//                 "forum_thread",
-//                 forum.id.toString()
-//             );
-
-//             if (existing) {
-//                 resolve("exists");
-//                 return;
-//             }
-
-//             var rating = forum.rating;
-//             if (!rating) {
-//                 rating = 0;
-//             } else {
-//                 rating = Math.round(rating); // annoyingly had half-stars
-//             }
-
-//             const success = await db.insert("forum_thread", {
-//                 id: forum.id,
-//                 url: forum.url || null,
-//                 title: forum.title || null,
-//                 author: forum.author || null,
-//                 author_id: forum.authorId || null,
-//                 replies: forum.replies || 0,
-//                 views: forum.views || 0,
-//                 rating: rating,
-//                 last_post_date: forum.lastPostDate || null,
-//                 has_attachment: forum.hasAttachment || false,
-//                 recording_id: forum.recordingId,
-//             });
-//             if (success) {
-//                 resolve("inserted");
-//             } else {
-//                 reject("failed");
-//             }
-//         } catch (e: any) {
-//             Debug.log(e, LogColor.White, "ERROR", true);
-//             reject(e);
-//         }
-//     });
-// }
-
-// export async function insertAllForumsIntoDatabase(
-//     db: DatabaseClient,
-//     forums: IForumThread[]
-// ): Promise<any> {
-//     return Promise.all(
-//         forums.map((forum) => insertForumIntoDatabase(db, forum))
-//     );
-// }
-
-// export class CambridgeMTForumThreadScraper extends CachedWebPage {
-
-// }
-
-// // each span with class subject_new, with id that starts with tid_
-// // has an anchor tag that leads to a post
-// class CambridgeMTForumPost {
-//     public stars : number;
-// }

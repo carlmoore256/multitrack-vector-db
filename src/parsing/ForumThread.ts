@@ -1,22 +1,30 @@
-import { getThreadId, parseForumThreadPosts, IForumPostData } from "./forum-parsers.js";
+import {
+    getThreadId,
+    parseForumThreadPosts,
+    IForumPostData,
+} from "./forum-parsers.js";
 import { IForumUser, IForumThread } from "../models/forum-models.js";
-import { CachedWebPage } from "../downloading/CachedWebPage.js";
+import { CachedWebDocument } from "../downloading/CachedWebPage.js";
 import Debug, { LogColor } from "../utils/Debug.js";
 import { IRecordingDownloadableResource } from "../models/cambridge-models.js";
-import { ForumThread, ForumUser, MultitrackRecordingDownload } from "@prisma/client";
-
-export class CambridgeMTForumThreadScraper extends CachedWebPage {
-
+import {
+    ForumThread,
+    ForumUser,
+    MultitrackRecordingDownload,
+    PrismaClient,
+} from "@prisma/client";
+import client from "../database/prisma.js";
+export class CambridgeMTForumThreadScraper extends CachedWebDocument {
     // public threadId: number;
 
     constructor(public thread: ForumThread, public pageNumber: number = 1) {
         const fullPageURL = thread.url + "&page=" + pageNumber;
         // const threadId = getThreadId(pageURLBase || thread.url);
-        super(`cambridge-forum-${thread.id}`, fullPageURL);
+        super(fullPageURL, "FORUM_THREAD_PAGE");
     }
 
     get postsElement(): HTMLElement {
-        return this.page.querySelector("#posts") as HTMLElement;
+        return this.document.querySelector("#posts") as HTMLElement;
     }
 
     public parse(): IForumPostData | null {
@@ -29,9 +37,9 @@ export class CambridgeMTForumThreadScraper extends CachedWebPage {
     }
 
     public getMaxPages(): number | null {
-        const pagesSpan = this.page.querySelector(".pages");
+        const pagesSpan = this.document.querySelector(".pages");
         if (pagesSpan) {
-            const pagesText = pagesSpan.textContent || '';
+            const pagesText = pagesSpan.textContent || "";
             const match = pagesText.match(/\((\d+)\)/); // Match the number inside parentheses
             if (match) {
                 return Number(match[1]); // Return the matched number
@@ -40,20 +48,56 @@ export class CambridgeMTForumThreadScraper extends CachedWebPage {
         return null;
     }
 
+    public override async load() {
+        await super.load((cachedDocument) => {
+            // record a ForumThreadCachedDocument to the database
+            
+            client.forumThreadCachedDocument.upsert({
+                where: {
+                    cachedDocumentId_forumThreadId_page: {
+                        cachedDocumentId: cachedDocument.id,
+                        forumThreadId: this.thread.id,
+                        page: this.pageNumber,
+                    }
+                },
+                update: {},
+                create: {
+                    forumThread: {
+                        connect: {
+                            id: this.thread.id,
+                        },
+                    },
+                    cachedDocument: {
+                        connect: {
+                            id: cachedDocument.id,
+                        },
+                    },
+                    page: this.pageNumber,
+                },
+                
+            }, );
+        });
+    }
+
     // gets the next page in the forum
     public async getNextPage(): Promise<CambridgeMTForumThreadScraper | null> {
         const maxPages = this.getMaxPages();
         if (maxPages && this.pageNumber < maxPages) {
-            Debug.log("\n\Getting page " + (this.pageNumber + 1) + " of " + maxPages);
-            const nextPageScraper = new CambridgeMTForumThreadScraper(this.thread, this.pageNumber + 1);
+            Debug.log(
+                "\nGetting page " + (this.pageNumber + 1) + " of " + maxPages
+            );
+
+            const nextPageScraper = new CambridgeMTForumThreadScraper(
+                this.thread,
+                this.pageNumber + 1
+            );
+
             await nextPageScraper.load();
+
             return nextPageScraper;
         }
         return null;
     }
-
-
-
 }
 
 export function consolidateUsers(users: ForumUser[]): ForumUser[] {
@@ -68,8 +112,13 @@ export function consolidateUsers(users: ForumUser[]): ForumUser[] {
     return Array.from(consolidatedUsers.values());
 }
 
-export function consolidateDownloads(attachments: MultitrackRecordingDownload[]): MultitrackRecordingDownload[] {
-    const consolidatedAttachments = new Map<string, MultitrackRecordingDownload>();
+export function consolidateDownloads(
+    attachments: MultitrackRecordingDownload[]
+): MultitrackRecordingDownload[] {
+    const consolidatedAttachments = new Map<
+        string,
+        MultitrackRecordingDownload
+    >();
     for (const attachment of attachments) {
         if (!attachment.id) {
             continue;
@@ -83,12 +132,13 @@ export function consolidateDownloads(attachments: MultitrackRecordingDownload[])
     return Array.from(consolidatedAttachments.values());
 }
 
-
-export async function crawlForumThreads(scraper: CambridgeMTForumThreadScraper): Promise<IForumPostData> {
+export async function crawlForumThreads(
+    scraper: CambridgeMTForumThreadScraper
+): Promise<IForumPostData> {
     const allData: IForumPostData = {
         posts: [],
         users: [],
-        downloads: []
+        downloads: [],
     };
     await scraper.load();
     while (scraper) {
@@ -100,9 +150,9 @@ export async function crawlForumThreads(scraper: CambridgeMTForumThreadScraper):
         const { posts, users, downloads } = parsed;
 
         allData.posts.push(...posts);
-        allData.users.push(...consolidateUsers(users));// users will post in multiple forums, but we just want a single one
+        allData.users.push(...consolidateUsers(users)); // users will post in multiple forums, but we just want a single one
         allData.downloads.push(...consolidateDownloads(downloads)); // there might be repeats of attatchments
-    
+
         // allData.users = consolidateUsers(allData.users);
 
         const nextScraper = await scraper.getNextPage();

@@ -5,6 +5,7 @@ import {
     queryInputPrompt,
     queryBuilderPrompt,
 } from "./cli-promts.js";
+import { MultitrackDownloadType } from "@prisma/client";
 import {
     CambridgeMTParser,
     DEFAULT_QUERY_FORUM_THREADS,
@@ -119,10 +120,13 @@ export class DatabaseCLI {
                             limit: "10",
                         }
                     );
-                    await this.parser.parseForumPostsFromQuery(query);
+                    await this.parser.parseForumPostsFromQuery({
+                        replies: { gt: 18 }
+                    });
                     break;
                 case "parseCachedForumPosts":
-                    await this.parser.parseAllCachedForumPosts();
+                    // await this.parser.parseAllCachedForumPosts();
+                    console.log(`Not implemented`);
                     break;
                 case "downloadMultitracks":
                     await new CambridgeMTDownloader(
@@ -143,7 +147,7 @@ export class DatabaseCLI {
                         ORDER BY
                             multitrack_recording_download.bytes ASC
                         LIMIT 1`,
-                        "multitrack"
+                        MultitrackDownloadType.MULTITRACK
                     );
                     break;
                 case "downloadAllMultitracks":
@@ -176,7 +180,11 @@ export class DatabaseCLI {
                             limit: "10",
                         }
                     );
-                    await this.parser.parseForumPostsFromQuery(query);
+                    // make sure this is actually getting the forum
+                    // posts that have mt downloads for the user
+                    await this.parser.parseForumPostsFromQuery({
+                        replies: { gt: 1 }, views: { gt: 100 }
+                    });
                     break;
                 case "vectorizeForumPosts":
                     await vectorizeAll(this.dbClient, 1000, (1000 * 60) / 3);
