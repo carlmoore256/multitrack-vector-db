@@ -44,6 +44,18 @@ model ArtistResource {
   @@map("artist_resource")
 }
 
+// ~~~~~~~~ Cache ~~~~~~~~
+
+model CachedDocument {
+  id        String  @id @default(cuid())
+  url       String  @map("url")
+  html      String? @map("html")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("cached_document")
+}
+
 // ~~~~~~~~ Forum ~~~~~~~~
 
 model ForumThread {
@@ -103,6 +115,8 @@ model MultitrackRecording {
   artistId  String  @map("artist_id")
   metadata  Json?   @map("metadata")
   forumUrl  String? @map("forum_url")
+
+  @@unique([name, artistId])
 
   artist Artist @relation(fields: [artistId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 

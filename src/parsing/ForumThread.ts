@@ -44,7 +44,7 @@ export class CambridgeMTForumThreadScraper extends CachedWebPage {
     public async getNextPage(): Promise<CambridgeMTForumThreadScraper | null> {
         const maxPages = this.getMaxPages();
         if (maxPages && this.pageNumber < maxPages) {
-            Debug.log("\n\Getting page " + this.pageNumber + 1 + " of " + maxPages);
+            Debug.log("\n\Getting page " + (this.pageNumber + 1) + " of " + maxPages);
             const nextPageScraper = new CambridgeMTForumThreadScraper(this.thread, this.pageNumber + 1);
             await nextPageScraper.load();
             return nextPageScraper;
@@ -68,7 +68,7 @@ export function consolidateUsers(users: ForumUser[]): ForumUser[] {
     return Array.from(consolidatedUsers.values());
 }
 
-export function consolidateAttachments(attachments: MultitrackRecordingDownload[]): MultitrackRecordingDownload[] {
+export function consolidateDownloads(attachments: MultitrackRecordingDownload[]): MultitrackRecordingDownload[] {
     const consolidatedAttachments = new Map<string, MultitrackRecordingDownload>();
     for (const attachment of attachments) {
         if (!attachment.id) {
@@ -97,14 +97,13 @@ export async function crawlForumThreads(scraper: CambridgeMTForumThreadScraper):
             Debug.error("Error parsing forum thread page");
             return allData;
         }
-        const { posts, users, downloads: attachments } = parsed;
+        const { posts, users, downloads } = parsed;
 
         allData.posts.push(...posts);
-        allData.users.push(...users);
-        allData.downloads.push(...consolidateAttachments(attachments)); // there might be repeats of attatchments
-
-        // users will post in multiple forums, but we just want a single one
-        allData.users = consolidateUsers(allData.users);
+        allData.users.push(...consolidateUsers(users));// users will post in multiple forums, but we just want a single one
+        allData.downloads.push(...consolidateDownloads(downloads)); // there might be repeats of attatchments
+    
+        // allData.users = consolidateUsers(allData.users);
 
         const nextScraper = await scraper.getNextPage();
         if (!nextScraper) {

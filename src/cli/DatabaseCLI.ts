@@ -119,7 +119,7 @@ export class DatabaseCLI {
                             limit: "10",
                         }
                     );
-                    await this.parser.parseAllForumPosts(query);
+                    await this.parser.parseForumPostsFromQuery(query);
                     break;
                 case "parseCachedForumPosts":
                     await this.parser.parseAllCachedForumPosts();
@@ -176,7 +176,7 @@ export class DatabaseCLI {
                             limit: "10",
                         }
                     );
-                    await this.parser.parseAllForumPosts(query);
+                    await this.parser.parseForumPostsFromQuery(query);
                     break;
                 case "vectorizeForumPosts":
                     await vectorizeAll(this.dbClient, 1000, (1000 * 60) / 3);

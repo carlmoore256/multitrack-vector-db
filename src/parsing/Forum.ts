@@ -107,22 +107,23 @@ export async function crawlForumPostingsForId(
     return allThreads.filter((thread) => uniqueIds.has(thread.id));
 }
 
-export async function crawlForumPostingsForURL(
-    url: string,
-    recording: MultitrackRecording
-): Promise<ForumThread[]> {
-    const id = getForumId(url);
-    return crawlForumPostingsForId(id, recording);
-}
-
-export async function crawlForumPostsForRecording(
+export async function crawlRecordingForumPosts(
     recording: MultitrackRecording
 ): Promise<ForumThread[]> {
     if (!recording.forumUrl) {
         throw new Error("No forum URL found for recording");
     }
-    return await crawlForumPostingsForURL(recording.forumUrl, recording);
+    const forumId = getForumId(recording.forumUrl);
+    return await crawlForumPostingsForId(forumId, recording);
 }
+
+// export async function crawlForumPostingsForURL(
+//     url: string,
+//     recording: MultitrackRecording
+// ): Promise<ForumThread[]> {
+//     const id = getForumId(url);
+//     return crawlForumPostingsForId(id, recording);
+// }
 
 // export async function crawlForumPostingsForRecordingsToDb(
 //     recording: CambridgeMTRecording,

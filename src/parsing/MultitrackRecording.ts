@@ -22,6 +22,7 @@ import {
     MultitrackRecording,
     MultitrackRecordingDownload,
     MultitrackDownloadType,
+    Prisma
 } from "@prisma/client";
 import { CambridgeMTGenre } from "./Genre.js";
 
@@ -166,8 +167,15 @@ export class CambridgeMTRecording
     async insertIntoDatabase(
         client: PrismaClient
     ): Promise<MultitrackRecording> {
-        const multitrackRecording = await client.multitrackRecording.create({
-            data: {
+        const multitrackRecording = await client.multitrackRecording.upsert({
+            where: {
+                name_artistId: {
+                    name: this.name,
+                    artistId: this.artist.id,
+                } 
+            },
+            update: {},
+            create: {
                 name: this.name,
                 numTracks: this.numTracks,
                 metadata: this.metadata,
@@ -177,38 +185,58 @@ export class CambridgeMTRecording
                         id: this.artist.id,
                     },
                 },
+                recordingGenres: {
+                    create: this.genres.map((g) => ({
+                        genre: {
+                            connectOrCreate: {
+                                where: {
+                                    name: g.name,
+                                },
+                                create: {
+                                    name: g.name,
+                                    subGenres: g.subGenres,
+                                },
+                            },
+                        },
+                    })),
+                },
+                multitrackRecordingDownloads: {
+                    create: this.downloads?.map((d) => ({
+                        ...d,
+                    })),
+                }
             },
         });
 
-        this.genres.map(async (genre) => {
-            await client.multitrackRecordingGenre.create({
-                data: {
-                    genre: {
-                        connect: {
-                            name: genre.name,
-                        },
-                    },
-                    multitrackRecording: {
-                        connect: {
-                            id: multitrackRecording.id,
-                        },
-                    },
-                },
-            });
-        });
+        // this.genres.map(async (genre) => {
+        //     await client.multitrackRecordingGenre.create({
+        //         data: {
+        //             genre: {
+        //                 connect: {
+        //                     name: genre.name,
+        //                 },
+        //             },
+        //             multitrackRecording: {
+        //                 connect: {
+        //                     id: multitrackRecording.id,
+        //                 },
+        //             },
+        //         },
+        //     });
+        // });
 
-        this.downloads?.map(async (download) => {
-            await client.multitrackRecordingDownload.create({
-                data: {
-                    ...download,
-                    multitrackRecording: {
-                        connect: {
-                            id: multitrackRecording.id,
-                        },
-                    },
-                },
-            });
-        });
+        // this.downloads?.map(async (download) => {
+        //     await client.multitrackRecordingDownload.create({
+        //         data: {
+        //             ...download,
+        //             multitrackRecording: {
+        //                 connect: {
+        //                     id: multitrackRecording.id,
+        //                 },
+        //             },
+        //         },
+        //     });
+        // });
 
         return multitrackRecording;
     }
