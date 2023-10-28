@@ -5,7 +5,7 @@ import { getRecordingDestinationPath } from "../parsing/MultitrackRecording.js";
 import { MultitrackDatastore } from "../datastore/MultitrackDatastore.js";
 import { generateId } from "../utils/utils.js";
 import { IAudioFile } from "../models/audio-models.js";
-import { Debug } from "../utils/Debug.js";
+import { Debug } from "../utils/debug.js";
 import { readFileSync } from "fs";
 import DatabaseClient from "../database/DatabaseClient.js";
 import { PrismaClient, MultitrackDownloadType, MultitrackRecording } from "@prisma/client";
@@ -205,7 +205,7 @@ export class CambridgeMTDownloader {
         }
 
         Debug.log(`Got results: ${JSON.stringify(results)}`);
-        const destDir = getRecordingDestinationPath(recording);
+        // const destDir = getRecordingDestinationPath(recording);
 
 
         for (let resource of results) {

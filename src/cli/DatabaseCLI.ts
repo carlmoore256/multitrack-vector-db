@@ -13,7 +13,7 @@ import {
 import { CambridgeMTDownloader } from "../downloading/CambridgeMTDownloader.js";
 import { MultitrackDatastore } from "../datastore/MultitrackDatastore.js";
 import { DatabaseClient } from "../database/DatabaseClient.js";
-import { Debug } from "../utils/Debug.js";
+import { Debug } from "../utils/debug.js";
 import { DownloadStatusUI } from "./DownloadStatusUI.js";
 import { DownloadManager } from "../downloading/DownloadManager.js";
 import { vectorizeAll } from "../database/vectorize.js";
@@ -121,7 +121,7 @@ export class DatabaseCLI {
                         }
                     );
                     await this.parser.parseForumPostsFromQuery({
-                        replies: { gt: 18 }
+                        replies: { lt: 11, gt: 5 }
                     });
                     break;
                 case "parseCachedForumPosts":

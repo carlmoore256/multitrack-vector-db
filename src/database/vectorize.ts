@@ -2,7 +2,7 @@ import { IForumPost } from "../models/forum-models.js";
 import { DatabaseClient } from "./DatabaseClient.js";
 import { OpenAIClient } from "../services/OpenAIClient.js";
 import { CreateEmbeddingResponseDataInner } from "openai";
-import Debug from "../utils/Debug.js";
+import Debug from "../utils/debug.js";
 import { time } from "console";
 import ProgressBar, { ProgressBarOptions } from 'progress';
 

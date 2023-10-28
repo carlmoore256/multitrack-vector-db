@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 import cuid from "cuid";
 import { createHash } from "crypto";
 import path from "path";
-import { Debug } from "./Debug.js";
+import { Debug } from "./debug.js";
 import axios from "axios";
 
 export function queryElement<T extends HTMLElement>(

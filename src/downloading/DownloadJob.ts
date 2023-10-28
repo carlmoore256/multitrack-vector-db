@@ -2,7 +2,7 @@ import { generateId } from "../utils/utils.js";
 import axios from 'axios';
 import { createWriteStream, existsSync, mkdirSync, chmodSync, WriteStream } from 'fs';
 import { modifyFilePermissions } from "../utils/files.js";
-import Debug from "../utils/Debug.js";
+import Debug from "../utils/debug.js";
 
 export interface DownloadCallbacks {
     onComplete: (download: DownloadJob) => void;

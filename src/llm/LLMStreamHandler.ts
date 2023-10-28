@@ -6,7 +6,7 @@ import {
 } from "langchain/callbacks";
 import { LLMResult, AgentAction } from "langchain/schema";
 import { Serialized } from "langchain/load/serializable";
-import { Debug } from "../utils/Debug.js";
+import { Debug } from "../utils/debug.js";
 import { renderCLIText } from "../cli/utils.js";
 
 interface IRun {

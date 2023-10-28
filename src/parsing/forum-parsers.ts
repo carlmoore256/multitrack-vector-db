@@ -1,5 +1,5 @@
 import { getTextContent, getAttributeValue } from "../utils/utils.js";
-import Debug, { LogColor } from "../utils/Debug.js";
+import Debug, { LogColor } from "../utils/debug.js";
 import { CambridgeMTArtist } from "./Artist.js";
 import { CambridgeMTRecording } from "./MultitrackRecording.js";
 

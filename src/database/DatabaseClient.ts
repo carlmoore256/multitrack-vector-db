@@ -9,7 +9,7 @@ import { readFileSync } from "fs";
 import { parseColumns, ITableColumn } from "./sql-helpers.js";
 import { selectPrompt, yesNoPrompt, inputPrompt } from "../cli/cli-promts.js";
 import { DatabaseTable } from "./DatabaseTable.js";
-import { Debug, LogColor } from "../utils/Debug.js";
+import { Debug, LogColor } from "../utils/debug.js";
 import dotenv from "dotenv";
 import { table } from "console";
 import { input } from "@inquirer/prompts";

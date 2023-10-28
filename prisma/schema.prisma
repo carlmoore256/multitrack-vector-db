@@ -66,10 +66,10 @@ model ForumThreadCachedDocument {
   forumThreadId    String @map("forum_thread_id")
   page             Int    @map("page")
 
-  @@id([cachedDocumentId, forumThreadId, page])
-
   cachedDocument CachedDocument @relation(fields: [cachedDocumentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   forumThread    ForumThread    @relation(fields: [forumThreadId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([cachedDocumentId, forumThreadId, page])
 }
 
 // ~~~~~~~~ Forum ~~~~~~~~
@@ -179,7 +179,7 @@ model MultitrackRecordingFile {
   fileId      String @id @default(cuid()) @map("file_id")
   recordingId String @map("recording_id")
 
-  datastoreFile            DatastoreFile             @relation(fields: [fileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  clientDatastoreFile      ClientDatastoreFile       @relation(fields: [fileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   multitrackRecording      MultitrackRecording       @relation(fields: [recordingId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   recordingFileInstruments RecordingFileInstrument[]
   AudioWindow              AudioWindow[]
@@ -240,39 +240,71 @@ model Items {
 
 // ~~~~~~ Client ~~~~~~
 
+enum Scope {
+  ADMIN
+}
+
+// admin user of the service
+model Account {
+  id           String         @id @default(cuid())
+  email        String         @unique
+  passwordHash String
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+  clients      Client[]
+  accountScope AccountScope[]
+
+  @@map("account")
+}
+
+// an account can have multiple scopes
+model AccountScope {
+  accountId String
+  scope     Scope
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@id([accountId, scope])
+}
+
 // a client of the platform
 model Client {
-  id            String          @id @default(cuid())
-  name          String          @map("name") // this is the device name for the client
-  apiKey        String          @map("api_key")
-  email         String          @map("email")
-  passwordHash  String          @map("password_hash")
-  createdAt     DateTime        @default(now()) @map("created_at")
-  updatedAt     DateTime        @updatedAt @map("updated_at")
-  DatastoreFile DatastoreFile[]
+  id        String   @id @default(cuid())
+  name      String   @map("name") // this is the device name for the client
+  apiKey    String   @unique @map("api_key")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  userId    String   @map("user_id")
 
+  account Account @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  clientDatastoreFile ClientDatastoreFile[]
+
+  @@unique([name, userId])
   @@map("client")
 }
 
 // represents a file stored in a client's datastore
-model DatastoreFile {
-  id        String    @id @default(cuid())
-  clientId  String    @map("client_id")
-  path      String    @map("path")
-  name      String    @map("name")
-  bytes     BigInt?   @map("bytes")
-  extension String?   @map("extension")
-  type      String?   @map("type")
-  createdAt DateTime? @map("created_at")
-  updatedAt DateTime? @map("updated_at")
-  metadata  String?
+model ClientDatastoreFile {
+  id           String    @id @default(cuid())
+  clientId     String    @map("client_id")
+  path         String    @map("path")
+  name         String    @map("name")
+  bytes        BigInt?   @map("bytes")
+  extension    String?   @map("extension")
+  type         String?   @map("type")
+  createdAt    DateTime? @default(now()) @map("created_at")
+  updatedAt    DateTime? @updatedAt @map("updated_at")
+  isSynced     Boolean?  @map("is_synced")
+  lastSyncedAt DateTime? @map("last_synced_at")
+  metadata     String?
 
   // a client owns a datastore file
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   recordingFile MultitrackRecordingFile?
 
-  @@map("datastore_file")
+  @@map("client_datastore_file")
 }
 
 // ~~~~~~~~ Audio ~~~~~~~~
@@ -298,4 +330,19 @@ model AudioWindow {
   multitrackRecordingFile MultitrackRecordingFile @relation(fields: [fileId], references: [fileId], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("audio_window")
+}
+
+// ~~~~~~~~ Download ~~~~~~~~
+// a pending download for the client that
+// once downloaded will be registered with the client's datastore
+model ClientPendingDownload {
+  id        String   @id @default(cuid())
+  clientId  String   @map("client_id")
+  url       String   @map("url")
+  createdAt DateTime @default(now()) @map("created_at")
+}
+
+model ManagedDatastoreFile {
+  id   String @id @default(cuid())
+  type String @map("type")
 }

@@ -1,5 +1,5 @@
 import { select, input } from '@inquirer/prompts';
-import { Debug, LogColor } from '../utils/Debug.js';
+import { Debug, LogColor } from '../utils/debug.js';
 import chalk from 'chalk';
 
 export type Choice<Value> = {

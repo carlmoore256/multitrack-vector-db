@@ -4,7 +4,7 @@ import { CambridgeMTRecording } from "./MultitrackRecording.js";
 import { CambridgeMTGenre, consolidateGenres } from "./Genre.js";
 import { CambridgeMTArtist, consolidateArtists } from "./Artist.js";
 import { CachedWebDocument } from "../downloading/CachedWebPage.js";
-import Debug from "../utils/Debug.js";
+import Debug from "../utils/debug.js";
 
 const BASE_URL = "https://www.cambridge-mt.com/ms/mtk/";
 const CACHE_ID = "cambridge-mt";

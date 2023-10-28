@@ -1,7 +1,7 @@
 import { IGenre } from "../models/cambridge-models.js";
 import { DatabaseClient } from "../database/DatabaseClient.js";
 import { IDatabaseWriteable } from "../database/IDatabaseObject.js";
-import { Debug, LogColor } from "../utils/Debug.js";
+import { Debug, LogColor } from "../utils/debug.js";
 import { Genre, PrismaClient } from "@prisma/client";
 
 export class CambridgeMTGenre implements IDatabaseWriteable<Genre> {

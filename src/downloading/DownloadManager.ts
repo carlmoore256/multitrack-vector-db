@@ -3,7 +3,7 @@ import { generateId } from "../utils/utils.js";
 import axios from 'axios'; // or use any other HTTP client
 import path from "path";
 import { createWriteStream, existsSync, mkdirSync, chmodSync } from 'fs';
-import { Debug } from "../utils/Debug.js";
+import { Debug } from "../utils/debug.js";
 import { unzipFile } from "../datastore/unzip.js";
 import { STORAGE_ROOT, DOWNLOAD_TEMP_DIR } from "../definitions.js";
 import { unzipAudioFiles } from "../datastore/unzip.js";

@@ -16,8 +16,6 @@ function test() {
 
 
     const interval = setInterval(() => {
-        // console.log("POOOP");
-        // control bars
         b1.increment();
         
         if (Math.random() > 0.5) {

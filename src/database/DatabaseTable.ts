@@ -1,5 +1,5 @@
 import { Client } from "pg";
-import Debug from "../utils/Debug.js";
+import Debug from "../utils/debug.js";
 import { clear } from "console";
 
 export class DatabaseTable {

@@ -1,6 +1,6 @@
 import ProgressBar, { ProgressBarOptions } from 'progress';
 import logUpdate from "log-update";
-import { Debug } from '../utils/Debug.js';
+import { Debug } from '../utils/debug.js';
 import { DownloadManager } from '../downloading/DownloadManager.js';
 import cliProgress, { MultiBar, Presets } from 'cli-progress';
 import { DownloadJob } from '../downloading/DownloadJob.js';

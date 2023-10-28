@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "forum_thread" ALTER COLUMN "rating" SET DATA TYPE DOUBLE PRECISION;

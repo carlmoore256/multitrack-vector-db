@@ -3,7 +3,7 @@ import { IMultitrackRecording } from "./models/cambridge-models.js";
 import { IRecordingFileEntity } from "./models/entity-models.js";
 import { DatabaseClient } from "./database/DatabaseClient.js";
 import mime from 'mime';
-import { Debug } from "./utils/Debug.js";
+import { Debug } from "./utils/debug.js";
 import { generateHashId } from "./utils/utils.js";
 import { statSync } from "fs";
 import path from "path";

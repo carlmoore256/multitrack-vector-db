@@ -5,7 +5,7 @@ import {
 } from "./forum-parsers.js";
 import { IForumUser, IForumThread } from "../models/forum-models.js";
 import { CachedWebDocument } from "../downloading/CachedWebPage.js";
-import Debug, { LogColor } from "../utils/Debug.js";
+import Debug, { LogColor } from "../utils/debug.js";
 import { IRecordingDownloadableResource } from "../models/cambridge-models.js";
 import {
     ForumThread,

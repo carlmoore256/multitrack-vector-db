@@ -1,7 +1,7 @@
 import { readdirSync, unlinkSync, lstatSync } from 'fs';
 import path from "path";
 import { IAudioFile } from '../models/audio-models.js';
-import { Debug, LogColor } from "../utils/Debug.js";
+import { Debug, LogColor } from "../utils/debug.js";
 import { createAudioFileInfo, isAudioFile } from '../audio-file.js';
 import { flattenDir, checkMakeDir } from '../utils/files.js';
 

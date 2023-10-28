@@ -14,7 +14,7 @@ import { DatabaseClient } from "../database/DatabaseClient.js";
 import { IDatabaseWriteable } from "../database/IDatabaseObject.js";
 import path from "path";
 import { existsSync, mkdirSync } from "fs";
-import { Debug } from "../utils/Debug.js";
+import { Debug } from "../utils/debug.js";
 import { STORAGE_ROOT } from "../definitions.js";
 
 import {

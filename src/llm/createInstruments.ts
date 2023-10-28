@@ -7,7 +7,7 @@ import {
 import { saveJSON, loadJSON, saveText } from "../utils/utils.js";
 import { parse } from "path";
 import http, { IncomingMessage } from "http";
-import { Debug } from "../utils/Debug.js";
+import { Debug } from "../utils/debug.js";
 import {
     encode,
     encodeChat,

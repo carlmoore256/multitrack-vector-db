@@ -1,4 +1,4 @@
-import { Debug } from "../utils/Debug.js";
+import { Debug } from "../utils/debug.js";
 import { convertUrlToFileName } from "../utils/utils.js";
 import axios from "axios";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";

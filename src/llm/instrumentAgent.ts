@@ -7,7 +7,7 @@ import { loadJSON, saveJSON } from "../utils/utils.js";
 import { PromptTemplate } from "langchain/prompts";
 import { queryAllFilenames, addNumberedPrefixes } from "./createInstruments.js";
 import { DatabaseClient } from "../database/DatabaseClient.js";
-import { Debug } from "../utils/Debug.js";
+import { Debug } from "../utils/debug.js";
 import { LLMStreamCallbackHandler } from "./LLMStreamHandler.js";
 // import { ModelCall}
 

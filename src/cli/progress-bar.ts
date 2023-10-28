@@ -1,6 +1,6 @@
 import ProgressBar, { ProgressBarOptions } from 'progress';
 import logUpdate from "log-update";
-import { Debug } from '../utils/Debug.js';
+import { Debug } from '../utils/debug.js';
 
 const DEFAULT_BAR_OPTIONS : ProgressBarOptions = {
     total: 100,

@@ -2,7 +2,7 @@ import DatabaseClient from "../database/DatabaseClient.js";
 import { STORAGE_ROOT } from "../definitions.js";
 import { readdirSync, unlinkSync, rmSync, existsSync, mkdirSync, statSync, copyFileSync, renameSync } from "fs";
 import { yesNoPrompt } from "../cli/cli-promts.js";
-import { Debug, LogColor } from "../utils/Debug.js";
+import { Debug, LogColor } from "../utils/debug.js";
 import { IMultitrackRecording } from "../models/cambridge-models.js";
 import { DatastoreFile } from "./DatastoreFile.js";
 import { DatastoreDirectory } from "./DatastoreDirectory.js";

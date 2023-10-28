@@ -3,7 +3,7 @@ import { STORAGE_ROOT } from "../definitions.js";
 import { readdirSync, unlinkSync, rmSync, existsSync, mkdirSync } from "fs";
 import { yesNoPrompt } from "../cli/cli-promts.js";
 import path from "path";
-import { Debug, LogColor } from "../utils/Debug.js";
+import { Debug, LogColor } from "../utils/debug.js";
 import { IMultitrackRecording } from "../models/cambridge-models.js";
 import { Datastore } from "./Datastore.js";
 import { DatastoreFile } from "./DatastoreFile.js";

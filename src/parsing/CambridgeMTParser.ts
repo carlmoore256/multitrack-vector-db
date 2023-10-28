@@ -1,7 +1,7 @@
 import { CambridgeMTScraper } from "./Scraper.js";
 import { IForumThread } from "../models/forum-models.js";
 import { DatabaseClient } from "../database/DatabaseClient.js";
-import { Debug, LogColor } from "../utils/Debug.js";
+import { Debug, LogColor } from "../utils/debug.js";
 import { crawlRecordingForumPosts } from "./Forum.js";
 import {
     CambridgeMTForumThreadScraper,
